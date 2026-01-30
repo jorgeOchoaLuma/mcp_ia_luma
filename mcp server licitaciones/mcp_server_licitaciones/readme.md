@@ -2,9 +2,46 @@
 
 Servidor MCP (Model Context Protocol) para la gestión del estado comercial de licitaciones.
 
-## 🚀 Instalación
+## 🚀 Instalación y Ejecución
 
-1. Instalar las dependencias:
+### Pasos para ejecutar el servidor:
+
+1. **Navegar a la carpeta del servidor:**
+```bash
+cd "mcp server licitaciones/mcp_server_licitaciones"
+```
+
+2. **Configurar el archivo .env:**
+```bash
+# Copiar el archivo de ejemplo y configurarlo
+cp .envexample .env
+# Editar .env con tus credenciales
+```
+
+**Importante:** No olvides configurar el archivo `.env` con tus credenciales. El archivo `.envexample` contiene las variables necesarias:
+- `GOOGLE_GENAI_USE_VERTEXAI=0`
+- `GOOGLE_API_KEY=tu_api_key_aqui`
+
+3. **Crear y activar el entorno virtual:**
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+4. **Instalar las dependencias:**
+```bash
+pip install google-adk "mcp[cli]" httpx gradio python-dotenv
+```
+
+5. **Volver a la raíz del proyecto y ejecutar:**
+```bash
+cd ../..
+adk web
+```
+
+### Instalación alternativa (usando requirements.txt):
+
+Si prefieres usar el archivo `requirements.txt`:
 ```bash
 pip install -r requirements.txt
 ```
