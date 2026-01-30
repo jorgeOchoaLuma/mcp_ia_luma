@@ -19,11 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copiar el directorio completo primero (Docker maneja mejor los espacios así)
 COPY ["mcp server licitaciones/requirements.txt", "./requirements.txt"]
 
-# Instalar dependencias de Python
+# Instalar dependencias de Python (incluye fastapi y uvicorn)
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Instalar dependencias adicionales necesarias para el servidor HTTP
-RUN pip install --no-cache-dir fastapi uvicorn
 
 # Copiar el código de la aplicación usando formato JSON array (maneja espacios mejor)
 COPY ["mcp server licitaciones/mcp_server_licitaciones", "./mcp_server_licitaciones"]
