@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import { useCopilotChat } from "@copilotkit/react-core";
 import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
-import { Mic, MicOff, Video, FileText, Globe, Gavel, Megaphone } from "lucide-react";
+import { Mic, MicOff, Video, FileText, Globe, Gavel, Megaphone, Search } from "lucide-react";
 
 const AGENTS = [
   { id: "video_producer", name: "Productor de Video", icon: Video },
@@ -12,6 +12,7 @@ const AGENTS = [
   { id: "url_expert", name: "Experto Luma (Web)", icon: Globe },
   { id: "licitaciones", name: "Licitaciones", icon: Gavel },
   { id: "campaign_expert", name: "Experto en Campañas", icon: Megaphone },
+  { id: "investigacion_fuentes", name: "Investigación de Fuentes", icon: Search },
 ];
 
 function MicButton() {

@@ -15,6 +15,7 @@ const runtime = new CopilotRuntime({
         url_expert: new HttpAgent({ url: "http://localhost:8000/url_expert" }),
         licitaciones: new HttpAgent({ url: "http://localhost:8000/licitaciones" }),
         campaign_expert: new HttpAgent({ url: "http://localhost:8000/campaign_expert" }),
+        investigacion_fuentes: new HttpAgent({ url: "http://localhost:8000/investigacion_fuentes" }),
     }
 });
 
