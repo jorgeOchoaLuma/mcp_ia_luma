@@ -12,6 +12,7 @@ from agents.url_context_agent import agent as url_agent
 from agents.licitaciones_agent import agent as licitaciones_agent
 from agents.campaign_agent import agent as campaign_agent
 from agents.investigacion_agent import agent as investigacion_agent
+from agents.projects_agent import agent as projects_agent
 
 app = FastAPI(title="Unified AG-UI Project")
 
@@ -31,6 +32,7 @@ agents = {
     "licitaciones": ADKAgent(adk_agent=licitaciones_agent, app_name="licitaciones_app"),
     "campaign_expert": ADKAgent(adk_agent=campaign_agent, app_name="campaign_app"),
     "investigacion_fuentes": ADKAgent(adk_agent=investigacion_agent, app_name="investigacion_app"),
+    "projects": ADKAgent(adk_agent=projects_agent, app_name="projects_app"),
 }
 
 # Add endpoints for each agent
