@@ -5,10 +5,10 @@ Arquitectura: SequentialAgent
   1. SearchAgent  → google_search (built-in only)
                     output_key="research_report"
   2. SaverAgent   → save_research_to_markdown (FunctionTool only)
-                    input_key="research_report"
+                    lee {research_report} desde session.state
 
 Gemini no permite mezclar built-in tools con FunctionTool en el mismo agente.
-El traspaso entre agentes se hace con output_key / input_key en el estado de sesión.
+El traspaso entre agentes se hace con output_key / instruction template.
 """
 
 import re
@@ -19,6 +19,7 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+# ── ADK core ──────────────────────────────────────────────────
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse
@@ -26,19 +27,12 @@ from google.adk.tools import google_search
 from google.adk.tools.function_tool import FunctionTool
 from google.genai.types import Content, Part
 
+# ── Web / API ─────────────────────────────────────────────────
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
-from google.adk.agents.llm_agent import LlmAgent
-from google.genai import types
 
-from google.adk.agents import LlmAgent
-from google.adk.agents.callback_context import CallbackContext
-from google.adk.models import LlmResponse, LlmRequest
-from google.adk.tools import url_context
-from google.genai import types
-from typing import Optional
-
+# ── Validador de URLs local ────────────────────────────────────
 from url_validator import (
     before_tool_callback,
     after_tool_callback,
@@ -191,11 +185,17 @@ def after_model_callback(
 
 search_agent = LlmAgent(
     name="SearchAgent",
-    model="gemini-2.5-flash",
-    output_key="research_report",          # ← guarda output en session.state
+    model="gemini-2.5-flash",   # CORREGIDO: gemini-3.1-flash-lite-preview no es un modelo válido
+    output_key="research_report",
     instruction="""
-Eres un agente de investigación periodística. Investiga el tema recibido
-y genera un reporte completo con EXACTAMENTE estas secciones:
+Eres un agente de investigación periodística. Investiga el tema recibido.
+
+🚨 **REGLA CRÍTICA DE EJECUCIÓN:**
+Solo tienes permitido realizar MÁXIMO UNA (1) BÚSQUEDA en Google.
+Inmediatamente después de recibir los resultados de tu primera búsqueda,
+debes construir y entregar tu reporte final sin hacer llamadas adicionales a la herramienta.
+
+Genera un reporte completo con EXACTAMENTE estas secciones:
 
 ## Resumen Ejecutivo
 (3-5 oraciones con los hallazgos más importantes)
@@ -241,12 +241,20 @@ El siguiente reporte fue generado por el agente de investigación:
 
 {research_report}
 
-Tu única tarea:
-1. Identificar el tema principal del reporte (primera línea o título).
-2. Llamar a save_research_to_markdown con:
-   - topic: el tema identificado (texto corto, sin caracteres especiales)
-   - report_content: el reporte completo tal como aparece arriba
-3. Responder al usuario con la ruta donde quedó guardado el archivo.
+ANTES de actuar, evalúa el contenido del reporte:
+
+- Si el reporte está vacío, es solo espacios en blanco, o contiene un mensaje
+  de error o de tema bloqueado (ej: "Este tema no está permitido"):
+  → NO llames a save_research_to_markdown.
+  → Responde al usuario explicando que no se pudo generar el reporte
+    e indica el motivo si está disponible.
+
+- Si el reporte tiene contenido válido:
+  1. Identifica el tema principal (primera línea o título del reporte).
+  2. Llama a save_research_to_markdown con:
+     - topic: el tema identificado (texto corto, sin caracteres especiales)
+     - report_content: el reporte completo tal como aparece arriba
+  3. Responde al usuario con la ruta donde quedó guardado el archivo.
 """,
     description="Guarda el reporte en un archivo .md.",
     tools=[save_markdown_tool],
@@ -273,9 +281,13 @@ adk_agent = ADKAgent(
     app_name="app_investigacion_fuentes_luma",
     user_id="investigador_user",
     session_timeout_seconds=3600,
-    use_in_memory_services=True
+    use_in_memory_services=True,
 )
 
+
+# ═══════════════════════════════════════════════════════════════
+#  FastAPI app
+# ═══════════════════════════════════════════════════════════════
 
 app = FastAPI()
 app.add_middleware(
@@ -286,11 +298,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 add_adk_fastapi_endpoint(app, adk_agent, path="/")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
-
-
-
-
-
