@@ -59,7 +59,7 @@ def before_model_guardrail(callback_context: CallbackContext, llm_request: LlmRe
 
 agent = LlmAgent(
     name="url_expert",
-    model="gemini-2.0-pro",
+    model="gemini-2.5-pro",
     description="Agente que consulta el sitio web de Luma Cloud.",
     instruction="""Responde basándote ÚNICAMENTE en url_context. Cita la fuente.""",
     tools=[url_context],

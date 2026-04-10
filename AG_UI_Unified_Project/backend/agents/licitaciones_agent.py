@@ -13,7 +13,7 @@ MCP_SERVER_PATH = BASE_DIR / "licitaciones.py"
 
 agent = LlmAgent(
     name="licitaciones_assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Asistente experto en gestión de licitaciones. Usa las herramientas MCP para listar y detallar licitaciones.",
     tools=[
         MCPToolset(
