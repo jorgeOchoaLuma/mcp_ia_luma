@@ -1,6 +1,6 @@
 """
 Unified AG-UI Backend
-Combines four specialized agents into a single endpoint.
+Un solo servidor FastAPI con un endpoint por agente.
 """
 
 from fastapi import FastAPI
@@ -13,6 +13,7 @@ from agents.licitaciones_agent import agent as licitaciones_agent
 from agents.campaign_agent import agent as campaign_agent
 from agents.investigacion_agent import agent as investigacion_agent
 from agents.projects_agent import agent as projects_agent
+from agents.resumen_reuniones_agent import adk_agent as resumen_reuniones_adk
 
 app = FastAPI(title="Unified AG-UI Project")
 
@@ -33,6 +34,7 @@ agents = {
     "campaign_expert": ADKAgent(adk_agent=campaign_agent, app_name="campaign_app"),
     "investigacion_fuentes": ADKAgent(adk_agent=investigacion_agent, app_name="investigacion_app"),
     "projects": ADKAgent(adk_agent=projects_agent, app_name="projects_app"),
+    "resumen_reuniones": resumen_reuniones_adk,
 }
 
 # Add endpoints for each agent

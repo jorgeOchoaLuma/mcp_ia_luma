@@ -6,3 +6,5 @@ python-dotenv
 ag-ui-adk
 pydantic
 mcp
+google-cloud-bigquery
+google-cloud-storage
