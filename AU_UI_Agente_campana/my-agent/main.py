@@ -1,12 +1,16 @@
 # ./adk_agent_samples/mcp_agent/agent.py
+import os
 from google.adk.tools import FunctionTool
 from google.adk.agents.sequential_agent import SequentialAgent
+from google.adk.apps import App
+from google.adk.plugins.bigquery_agent_analytics_plugin import (
+    BigQueryAgentAnalyticsPlugin,
+    BigQueryLoggerConfig,
+)
 from dotenv import load_dotenv
-import os
 import re
 from datetime import datetime
 from pathlib import Path
-
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,11 +19,31 @@ from google.adk.agents.llm_agent import LlmAgent
 from google.genai import types
 
 
-
-
-
 load_dotenv()
-GEMINI_MODEL = "gemini-2.5-flash"
+
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+
+# =============================================================================
+# CONFIGURACIÓN BIGQUERY ANALYTICS PLUGIN
+# =============================================================================
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
+BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "marketing_agent_analytics")
+BQ_LOCATION = os.environ.get("BQ_LOCATION", "US")
+
+bq_analytics_plugin = BigQueryAgentAnalyticsPlugin(
+    project_id=PROJECT_ID,
+    dataset_id=BQ_DATASET_ID,
+    location=BQ_LOCATION,
+    config=BigQueryLoggerConfig(
+        enabled=True,
+        batch_size=1,
+        batch_flush_interval=0.5,
+        log_session_metadata=True,
+        auto_schema_upgrade=True,
+        create_views=True,
+        custom_tags={"app": "marketing_agent"},
+    ),
+)
 
 
 # =============================================================================
@@ -51,11 +75,8 @@ def save_to_markdown(
         """Limpia y normaliza el texto para un MD bien formateado."""
         if not text:
             return ""
-        # Normalizar saltos de línea (Windows \r\n → \n)
         text = text.replace("\r\n", "\n").replace("\r", "\n")
-        # Eliminar espacios al inicio/fin de cada línea
         lines = [line.rstrip() for line in text.split("\n")]
-        # Colapsar más de 2 líneas vacías consecutivas → máximo 1
         cleaned = []
         blank_count = 0
         for line in lines:
@@ -69,43 +90,29 @@ def save_to_markdown(
         return "\n".join(cleaned).strip()
 
     def fix_tables(text: str) -> str:
-        """
-        Asegura que las tablas Markdown tengan el separador de encabezado correcto
-        y estén rodeadas de líneas en blanco para renderizarse bien.
-        """
         lines = text.split("\n")
         result = []
         i = 0
         while i < len(lines):
             line = lines[i]
-            # Detectar línea de tabla (empieza y termina con |)
             stripped = line.strip()
             if stripped.startswith("|") and stripped.endswith("|"):
-                # Asegurar línea en blanco antes de la tabla
                 if result and result[-1].strip() != "":
                     result.append("")
-
-                # Recolectar todas las líneas de la tabla
                 table_lines = []
                 while i < len(lines) and lines[i].strip().startswith("|"):
                     table_lines.append(lines[i])
                     i += 1
-
-                # Verificar si tiene separador (fila con ---)
                 has_separator = any(
                     re.match(r"^\|[\s\-\|:]+\|$", tl.strip())
                     for tl in table_lines
                 )
-
                 if not has_separator and len(table_lines) >= 2:
-                    # Insertar separador después del encabezado (fila 0)
                     header = table_lines[0]
-                    cols = len([c for c in header.split("|") if c.strip()]) 
+                    cols = len([c for c in header.split("|") if c.strip()])
                     separator = "| " + " | ".join(["---"] * cols) + " |"
                     table_lines.insert(1, separator)
-
                 result.extend(table_lines)
-                # Asegurar línea en blanco después de la tabla
                 result.append("")
                 continue
             else:
@@ -114,25 +121,19 @@ def save_to_markdown(
         return "\n".join(result)
 
     def format_section(title: str, content: str, level: int = 2) -> str:
-        """Formatea una sección con encabezado y contenido limpio."""
         prefix = "#" * level
         clean = fix_tables(clean_text(content))
         return f"{prefix} {title}\n\n{clean}\n\n---\n"
 
-    # --- Nombre de archivo seguro (cross-platform) ---
-    # Eliminar caracteres inválidos en cualquier OS
     safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", product_name)
     safe_name = safe_name.strip().replace(" ", "_") or "campaña"
     fecha_actual = datetime.now().strftime("%Y-%m-%d")
     filename = f"{safe_name}_{fecha_actual}.md"
 
-    # --- Directorio de salida (cross-platform con pathlib) ---
     output_dir = Path.home() / "Documents" / "resultados_campanas"
     output_dir.mkdir(parents=True, exist_ok=True)
     file_path = output_dir / filename
-    
 
-    # --- Construcción del Markdown ---
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     md_content = f"""# 📊 Campaña de Marketing: {product_name}
@@ -152,7 +153,6 @@ def save_to_markdown(
     md_content += format_section("📈 Plan de Medición Digital", measurement_plan)
     md_content += f"\n---\n\n*Fin del reporte — {product_name} — {fecha_actual}*\n"
 
-    # --- Guardar archivo ---
     try:
         file_path.write_text(md_content, encoding="utf-8")
         print(f"✅ Archivo guardado: {file_path}")
@@ -243,7 +243,7 @@ ad_writer_agent = LlmAgent(
     name="AdWriterAgent",
     model=GEMINI_MODEL,
     instruction="""
-    Eres un experto copywriter especializado en Google Ads y scripts de video.
+    Eres un experto copywriter especializado en Google Ads, Meta ADS y scripts de video.
 
     **BUYER PERSONA:**
     {buyer_persona}
@@ -275,7 +275,51 @@ ad_writer_agent = LlmAgent(
     | Descripción 2 (máx 90 car) | ... | ... | ... |
     | Propuesta de valor | ... | ... | ... |
 
-    ## 3. REDES SOCIALES
+    ## 3. ANUNCIOS META ADS (Facebook e Instagram)
+
+    ### 3.1 Anuncios de imagen estática (Feed)
+
+    Presenta 3 variantes con este formato de tabla:
+
+    | Campo | Variante 1 | Variante 2 | Variante 3 |
+    |---|---|---|---|
+    | Objetivo de campaña | ... | ... | ... |
+    | Título principal (máx 40 car) | ... | ... | ... |
+    | Texto principal (máx 125 car) | ... | ... | ... |
+    | Descripción del enlace (máx 30 car) | ... | ... | ... |
+    | CTA Button | Comprar ahora | Más información | Registrarse |
+    | Audiencia sugerida | ... | ... | ... |
+
+    ### 3.2 Anuncios para Stories / Reels (formato vertical 9:16)
+
+    Presenta 2 variantes con este formato:
+
+    **Story/Reel Variante 1 — [Nombre del concepto]**
+    - **Duración sugerida:** 15 seg
+    - **Texto en pantalla (línea 1):** ...
+    - **Texto en pantalla (línea 2):** ...
+    - **Narración / VO:** ...
+    - **CTA superpuesto:** ...
+    - **Música/tono:** ...
+
+    **Story/Reel Variante 2 — [Nombre del concepto]**
+    - **Duración sugerida:** 15 seg
+    - **Texto en pantalla (línea 1):** ...
+    - **Texto en pantalla (línea 2):** ...
+    - **Narración / VO:** ...
+    - **CTA superpuesto:** ...
+    - **Música/tono:** ...
+
+    ### 3.3 Anuncio de Retargeting (para visitantes que no convirtieron)
+
+    - **Tipo:** Carousel o imagen única
+    - **Titular:** ...
+    - **Texto principal:** ...
+    - **Oferta/incentivo:** ...
+    - **CTA:** ...
+    - **Audiencia:** Visitantes del sitio web últimos 30 días / Carrito abandonado
+
+    ## 4. REDES SOCIALES (Contenido orgánico)
 
     ### LinkedIn
     [texto formal, máx 150 palabras]
@@ -285,7 +329,7 @@ ad_writer_agent = LlmAgent(
 
     IMPORTANTE: Tablas con encabezado + separador (---) + datos. Sin líneas vacías dentro de tablas.
     """,
-    description="Redacta anuncios, scripts y contenido de redes sociales.",
+    description="Redacta anuncios de Google Ads, Meta Ads (Feed, Stories, Retargeting), scripts y contenido de redes sociales.",
     output_key="ad_content"
 )
 
@@ -368,6 +412,15 @@ marketing_pipeline_agent = SequentialAgent(
 
 agent = marketing_pipeline_agent
 
+# =============================================================================
+# APP CON BIGQUERY PLUGIN (requerido para que el plugin funcione correctamente)
+# =============================================================================
+adk_app = App(
+    name="app_campana",
+    root_agent=agent,
+    plugins=[bq_analytics_plugin],
+)
+
 adk_agent = ADKAgent(
     adk_agent=agent,
     app_name="app_campana",
@@ -376,13 +429,9 @@ adk_agent = ADKAgent(
     use_in_memory_services=True
 )
 
-
 app = FastAPI()
 add_adk_fastapi_endpoint(app, adk_agent, path="/")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
-
-
-
-

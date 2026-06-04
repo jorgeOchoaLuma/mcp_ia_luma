@@ -10,9 +10,14 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 
 const runtime = new CopilotRuntime({
     agents: {
-        my_agent: new HttpAgent({ url: "http://localhost:8001/" }),
+        my_agent: new HttpAgent({ 
+            url: "http://localhost:8000/",
+            timeout: 120000,  // 2 minutos
+        }),
     }
 });
+
+export const maxDuration = 120;
 
 export const POST = async (req: NextRequest) => {
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({

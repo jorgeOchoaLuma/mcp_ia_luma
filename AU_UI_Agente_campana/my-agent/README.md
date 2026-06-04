@@ -57,14 +57,20 @@ uv init my-agent
 cd my-agent
 
 # Instalar dependencias
-uv add ag-ui-adk google-adk uvicorn fastapi
-
+uv add ag-ui-adk google-adk uvicorn beautifulsoup4 fastapi google-cloud-bigquery google-cloud-storage google-adk[bigquery] google-cloud-bigquery-storage pyarrow
 
 
 # Configurar API Key
-export GOOGLE_API_KEY="tu_api_key"
-# o crear .env:
-echo "GOOGLE_API_KEY=tu_api_key" > .env
+GOOGLE_GENAI_USE_VERTEXAI=TRUE
+# También es recomendable definir la región y el ID del proyecto
+GOOGLE_CLOUD_PROJECT=
+GOOGLE_CLOUD_LOCATION=global
+#Créalo en: https://console.cloud.google.com/ai/discovery/data-stores
+DATASTORE_ID=rag-layout_1779741553105
+GCS_BUCKET_NAME=bucket_data1
+
+BQ_DATASET_ID=agente_analytics_db
+BQ_LOCATION=us-central1
 
 # Ejecutar
 uv run main.py
@@ -75,11 +81,12 @@ uv run main.py
 ```bash
 # En otra terminal
 cd ..
-npx create-next-app@latest my-copilot-app --typescript
+npx create-next-app@latest my-copilot-app 
 cd my-copilot-app
 
 # Instalar CopilotKit
-npm install @copilotkit/react-ui
+
+npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client
 
 # Copiar archivos frontend en sus ubicaciones
 # Ejecutar
@@ -173,10 +180,3 @@ npm run build            # Producción
 ---
 
 **Lee GUIA_INSTALACION_UV.md para instrucciones detalladas.** 🚀
-
-
-
-
-
-
-

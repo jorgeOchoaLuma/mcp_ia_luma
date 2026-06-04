@@ -87,6 +87,8 @@ cd my-copilot-app
 # Instalar CopilotKit
 
 npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client
+npm install npm install @google-cloud/storage 
+
 
 # Copiar archivos frontend en sus ubicaciones
 # Ejecutar
