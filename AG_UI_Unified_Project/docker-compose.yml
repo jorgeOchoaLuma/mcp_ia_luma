@@ -1,0 +1,23 @@
+# Backend AG-UI (FastAPI). Coolify: recurso Docker Compose con base path AG_UI_Unified_Project
+# o ajusta en Coolify la ruta a este archivo.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PUBLISH_PORT:-8000}:${BACKEND_PORT:-8000}"
+    environment:
+      PORT: ${BACKEND_PORT:-8000}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import os,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:\"+os.environ.get(\"PORT\",\"8000\")+\"/health\")"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

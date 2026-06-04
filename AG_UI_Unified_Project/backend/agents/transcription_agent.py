@@ -44,7 +44,7 @@ def store_transcription(transcription: str, tool_context: ToolContext) -> dict:
         return {"status": "error", "error": str(e)}
 
 gemini_with_voice = Gemini(
-    model="gemini-2.0-flash-live", # Using a common live model name
+    model="gemini-live-2.5-flash",
     speech_config=types.SpeechConfig(
         language_code=LANGUAGE_CODE,
         voice_config=types.VoiceConfig(

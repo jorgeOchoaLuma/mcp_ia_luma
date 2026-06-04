@@ -55,7 +55,7 @@ def generar_ayudas_visuales(transcripcion: str) -> dict:
 # =========================
 
 agent = LlmAgent(
-    model="gemini-2.0-flash", # Updated to a more standard model name if needed, keeping 2.5 if available but 2.0 is common
+    model="gemini-2.5-flash",
     name="video_producer",
     description="Asistente de producción de contenido para videos educativos sobre IA.",
     instruction="""Eres el asistente de producción de contenido para el canal educativo de Luma Cloud sobre Inteligencia Artificial.
