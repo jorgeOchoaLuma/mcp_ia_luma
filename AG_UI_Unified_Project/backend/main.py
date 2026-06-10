@@ -49,10 +49,29 @@ agents = {
 for agent_id, adk_wrapper in agents.items():
     add_adk_fastapi_endpoint(app, adk_wrapper, path=f"/{agent_id}")
 
+def _gcp_project_misconfigured(project: str) -> bool:
+    if not project:
+        return True
+    invalid = {
+        "global",
+        "google_cloud_project",
+        "tu-proyecto-gcp",
+        "your-project-id",
+    }
+    if project.lower() in invalid:
+        return True
+    # Valor literal del nombre de la variable (error típico en Coolify)
+    if project.upper() == "GOOGLE_CLOUD_PROJECT":
+        return True
+    if project.startswith("GOOGLE_") or project.startswith("${"):
+        return True
+    return False
+
+
 @app.get("/health")
 def health():
     project = os.environ.get("GOOGLE_CLOUD_PROJECT", "").strip()
-    gcp_misconfigured = not project or project.lower() == "global"
+    gcp_misconfigured = _gcp_project_misconfigured(project)
     return {
         "status": "ok" if not gcp_misconfigured else "degraded",
         "agents": list(agents.keys()),
@@ -62,8 +81,8 @@ def health():
             "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
             "misconfigured": gcp_misconfigured,
             "hint": (
-                "GOOGLE_CLOUD_PROJECT debe ser el ID del proyecto (ej. zippy-sublime-488620-q2), "
-                "no 'global'. 'global' va en GOOGLE_CLOUD_LOCATION si aplica, pero se recomienda us-central1."
+                "GOOGLE_CLOUD_PROJECT debe ser el ID real del proyecto GCP "
+                "(ej. zippy-sublime-488620-q2), NO el texto 'GOOGLE_CLOUD_PROJECT'."
             )
             if gcp_misconfigured
             else None,
