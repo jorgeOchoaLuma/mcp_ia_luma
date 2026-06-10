@@ -43,9 +43,11 @@ def analizar_archivo_gcs(gcs_uri: str, mime_type: str, instruccion: str) -> str:
             model="gemini-2.5-flash",
             contents=[genai_types.Content(parts=[file_part, text_part], role="user")],
         )
-        return response.text
+        print(f"[resumen_reuniones] Archivo procesado: {gcs_uri[:80]}...")
+        return response.text or "(Sin contenido en la respuesta del modelo)"
 
     except Exception as e:
+        print(f"[resumen_reuniones] Error GCS/Vertex: {e}")
         return f"Error al procesar el archivo: {str(e)}"
 
 

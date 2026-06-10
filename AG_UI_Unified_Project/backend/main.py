@@ -12,6 +12,11 @@ from gcp_credentials import setup_gcp_credentials
 
 load_dotenv()
 setup_gcp_credentials(base_dir=Path(__file__).resolve().parent)
+
+# Vertex AI: no mezclar API key con credenciales de service account
+if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() in ("TRUE", "1", "YES"):
+    os.environ.pop("GOOGLE_API_KEY", None)
+    os.environ.pop("GEMINI_API_KEY", None)
 from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
 from agents.video_agent import agent as video_agent
