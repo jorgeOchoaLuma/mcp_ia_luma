@@ -51,7 +51,7 @@ function UploadButton() {
       appendMessage(
         new TextMessage({
           role: Role.User,
-          content: `El usuario ha subido un archivo. Procésalo y genera un resumen completo.\n\nDetalles del archivo:\n- Nombre: ${file.name}\n- Tipo: ${file.type}\n- URI en GCS: ${data.url}\n\nPor favor analiza este archivo usando la URI GCS proporcionada.`,
+          content: `Genera un resumen completo de la reunión del archivo "${file.name}".\n\n[METADATA:uri=${data.url},mime=${data.mimeType || file.type}]`,
         })
       );
     } catch (err: unknown) {

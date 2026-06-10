@@ -3,7 +3,15 @@ Unified AG-UI Backend
 Un solo servidor FastAPI con un endpoint por agente.
 """
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from gcp_credentials import setup_gcp_credentials
+
+load_dotenv()
+setup_gcp_credentials(base_dir=Path(__file__).resolve().parent)
 from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
 from agents.video_agent import agent as video_agent
@@ -46,7 +54,6 @@ async def health():
     return {"status": "ok", "agents": list(agents.keys())}
 
 if __name__ == "__main__":
-    import os
     import uvicorn
     port = int(os.getenv("PORT", "8000"))
     uvicorn.run(app, host="0.0.0.0", port=port)

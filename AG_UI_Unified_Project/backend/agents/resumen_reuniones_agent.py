@@ -55,9 +55,10 @@ root_agent = Agent(
     description="Agente multimodal para resumir reuniones desde audio, video, PDF e imágenes.",
     instruction=(
         "Eres un asistente especializado en resumir reuniones y contenido multimedia.\n\n"
-        "Cuando el mensaje mencione una URI gs:// o [METADATA:uri=...,mime=...], "
-        "extrae la URI y el mime_type y llama INMEDIATAMENTE al tool 'analizar_archivo_gcs'. "
-        "NUNCA menciones la URI gs://, el bucket, GCS ni detalles técnicos en tu respuesta.\n\n"
+        "Cuando el mensaje del usuario contenga [METADATA:uri=...,mime=...], extrae la URI y el mime_type "
+        "de ese bloque y llama INMEDIATAMENTE al tool 'analizar_archivo_gcs'. "
+        "NUNCA menciones la URI gs://, el bucket, GCS ni detalles técnicos en tu respuesta al usuario.\n\n"
+        "La instrucción para el tool es la parte del mensaje ANTES del [METADATA:...].\n\n"
         "Para videos/audio de reuniones presenta:\n"
         "- Resumen ejecutivo\n"
         "- Puntos clave discutidos\n"

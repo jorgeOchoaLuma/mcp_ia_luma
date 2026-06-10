@@ -1,58 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Storage } from "@google-cloud/storage";
-import { Readable } from "stream";
-
-const storage = new Storage();
-const BUCKET = process.env.GCS_BUCKET_RESUMEN!;
+import { getStorage } from "@/lib/gcp-credentials";
 
 export const maxDuration = 120;
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!BUCKET) {
+    const bucketName = process.env.GCS_BUCKET_RESUMEN;
+    if (!bucketName) {
       return NextResponse.json(
-        { error: "GCS_BUCKET_RESUMEN no está definido en .env.local" },
+        { error: "GCS_BUCKET_RESUMEN no está definido en .env" },
         { status: 500 }
       );
     }
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file" }, { status: 400 });
     }
 
     const filename = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const bucket = storage.bucket(BUCKET);
-    const gcsFile = bucket.file(filename);
+    const storage = getStorage();
+    const gcsFile = storage.bucket(bucketName).file(filename);
 
-    const writeStream = gcsFile.createWriteStream({
-      metadata: { contentType: file.type },
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await gcsFile.save(buffer, {
+      metadata: { contentType: file.type || "application/octet-stream" },
       resumable: false,
     });
 
-    const reader = file.stream().getReader();
-    const nodeStream = new Readable({
-      async read() {
-        const { done, value } = await reader.read();
-        if (done) {
-          this.push(null);
-        } else {
-          this.push(Buffer.from(value));
-        }
-      },
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      nodeStream.pipe(writeStream);
-      writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
-      nodeStream.on("error", reject);
-    });
-
     return NextResponse.json({
-      url: `gs://${BUCKET}/${filename}`,
+      url: `gs://${bucketName}/${filename}`,
       mimeType: file.type,
     });
   } catch (error: unknown) {

@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+from gcp_credentials import setup_gcp_credentials
 from fastapi import FastAPI
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
 from google.adk.agents import Agent
@@ -14,6 +16,7 @@ from google.adk.tools.tool_context import ToolContext
 
 
 load_dotenv()
+setup_gcp_credentials(base_dir=Path(__file__).resolve().parent)
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
 BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "")
