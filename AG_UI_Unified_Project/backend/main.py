@@ -50,7 +50,7 @@ for agent_id, adk_wrapper in agents.items():
     add_adk_fastapi_endpoint(app, adk_wrapper, path=f"/{agent_id}")
 
 @app.get("/health")
- async def health():
+def health():
     project = os.environ.get("GOOGLE_CLOUD_PROJECT", "").strip()
     gcp_misconfigured = not project or project.lower() == "global"
     return {
