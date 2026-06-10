@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CopilotSidebar } from "@copilotkit/react-ui";
 import { useCopilotChat } from "@copilotkit/react-core";
+import { CopilotSidebar } from "@copilotkit/react-ui";
+import { useSelectedAgent } from "./agent-provider";
 import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
 import {
   Mic,
@@ -151,7 +152,7 @@ function MicButton() {
 }
 
 export default function Page() {
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].id);
+  const { agent: selectedAgent, setAgent: setSelectedAgent } = useSelectedAgent();
   const active = AGENTS.find((a) => a.id === selectedAgent);
 
   return (

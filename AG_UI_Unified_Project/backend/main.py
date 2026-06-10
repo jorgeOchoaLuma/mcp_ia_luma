@@ -50,8 +50,25 @@ for agent_id, adk_wrapper in agents.items():
     add_adk_fastapi_endpoint(app, adk_wrapper, path=f"/{agent_id}")
 
 @app.get("/health")
-async def health():
-    return {"status": "ok", "agents": list(agents.keys())}
+ async def health():
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT", "").strip()
+    gcp_misconfigured = not project or project.lower() == "global"
+    return {
+        "status": "ok" if not gcp_misconfigured else "degraded",
+        "agents": list(agents.keys()),
+        "gcp": {
+            "project_set": bool(project),
+            "project_id": project or None,
+            "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            "misconfigured": gcp_misconfigured,
+            "hint": (
+                "GOOGLE_CLOUD_PROJECT debe ser el ID del proyecto (ej. zippy-sublime-488620-q2), "
+                "no 'global'. 'global' va en GOOGLE_CLOUD_LOCATION si aplica, pero se recomienda us-central1."
+            )
+            if gcp_misconfigured
+            else None,
+        },
+    }
 
 if __name__ == "__main__":
     import uvicorn

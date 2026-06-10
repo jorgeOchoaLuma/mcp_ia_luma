@@ -1,4 +1,4 @@
-import { CopilotKit } from "@copilotkit/react-core";
+import { AgentProvider } from "./agent-provider";
 import "@copilotkit/react-ui/styles.css";
 import "./globals.css";
 
@@ -6,9 +6,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <CopilotKit runtimeUrl="/api/copilotkit">
-          {children}
-        </CopilotKit>
+        <AgentProvider>{children}</AgentProvider>
       </body>
     </html>
   );
