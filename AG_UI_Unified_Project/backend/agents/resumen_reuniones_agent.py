@@ -40,7 +40,7 @@ def analizar_archivo_gcs(gcs_uri: str, mime_type: str, instruccion: str) -> str:
         text_part = genai_types.Part.from_text(text=instruccion)
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             contents=[genai_types.Content(parts=[file_part, text_part], role="user")],
         )
         print(f"[resumen_reuniones] Archivo procesado: {gcs_uri[:80]}...")
@@ -53,7 +53,7 @@ def analizar_archivo_gcs(gcs_uri: str, mime_type: str, instruccion: str) -> str:
 
 root_agent = Agent(
     name="resumen_reuniones",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     description="Agente multimodal para resumir reuniones desde audio, video, PDF e imágenes.",
     instruction=(
         "Eres un asistente especializado en resumir reuniones y contenido multimedia.\n\n"

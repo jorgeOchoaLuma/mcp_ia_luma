@@ -63,7 +63,7 @@ agent = LlmAgent(
 Tu voz es {VOICE_NAME} y hablas en español.
 ESCUCHA todo lo que dice el usuario y recuérdalo exactamente.
 
-Cuando el usuario diga "ya terminé", "guarda", "fin", "terminar", "save" o "done":
+Cuando el usuario diga "ya terminé", "guarda", "guardar", "fin", "terminar", "save" o "done":
 1. Llama INMEDIATAMENTE a `store_transcription` con TODO el texto transcrito.
 2. Confirma al usuario la ruta donde se guardó el archivo.
 """,

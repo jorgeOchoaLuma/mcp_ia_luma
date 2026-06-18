@@ -17,6 +17,7 @@ const runtime = new CopilotRuntime({
         video_producer: new HttpAgent({ url: `${BACKEND_URL}/video_producer`, timeout: AGENT_TIMEOUT_MS }),
         transcription: new HttpAgent({ url: `${BACKEND_URL}/transcription`, timeout: AGENT_TIMEOUT_MS }),
         url_expert: new HttpAgent({ url: `${BACKEND_URL}/url_expert`, timeout: AGENT_TIMEOUT_MS }),
+        soporte: new HttpAgent({ url: `${BACKEND_URL}/soporte`, timeout: AGENT_TIMEOUT_MS }),
         licitaciones: new HttpAgent({ url: `${BACKEND_URL}/licitaciones`, timeout: AGENT_TIMEOUT_MS }),
         campaign_expert: new HttpAgent({ url: `${BACKEND_URL}/campaign_expert`, timeout: AGENT_TIMEOUT_MS }),
         investigacion_fuentes: new HttpAgent({ url: `${BACKEND_URL}/investigacion_fuentes`, timeout: AGENT_TIMEOUT_MS }),

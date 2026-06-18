@@ -17,15 +17,17 @@ import {
   FolderKanban,
   Users,
   Paperclip,
+  LifeBuoy,
 } from "lucide-react";
 
 const AGENTS = [
   { id: "video_producer", name: "Productor de Video", icon: Video, source: "AG_UI_agent_asistentente_video" },
   { id: "url_expert", name: "Experto Luma (Web)", icon: Globe, source: "AG_UI_agente_url_contexto_luma" },
+  { id: "soporte", name: "Soporte Luma", icon: LifeBuoy, source: "AG-UI_Agente_soporte" },
   { id: "campaign_expert", name: "Experto en Campañas", icon: Megaphone, source: "AU_UI_Agente_campana" },
   { id: "resumen_reuniones", name: "Resumen de Reuniones", icon: Users, source: "AG_UI_agente_resumen_reuniones" },
   { id: "projects", name: "Proyectos Zoho", icon: FolderKanban, source: "AG-UI_project" },
-  { id: "transcription", name: "Transcripción", icon: FileText, source: "AG_UI_agent_transcripción" },
+  { id: "transcription", name: "Transcripción", icon: FileText, source: "AG_UI_agent_transcripción / bigquery" },
   { id: "licitaciones", name: "Licitaciones", icon: Gavel, source: "—" },
   { id: "investigacion_fuentes", name: "Investigación de Fuentes", icon: Search, source: "AG-UI_investigacion_fuentes" },
 ];
@@ -198,6 +200,7 @@ export default function Page() {
           <p className="text-gray-500 text-sm">
             CopilotKit usa el id <strong className="text-gray-300">{selectedAgent}</strong> en el sidebar.
             {selectedAgent === "resumen_reuniones" && " Usa el clip 📎 para subir archivos a GCS."}
+            {selectedAgent === "transcription" && " Di 'guardar' al terminar. Live WS: /transcription/live/ws"}
           </p>
         </div>
       </div>

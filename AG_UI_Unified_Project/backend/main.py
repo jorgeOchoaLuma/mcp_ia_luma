@@ -17,16 +17,19 @@ setup_gcp_credentials(base_dir=Path(__file__).resolve().parent)
 if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() in ("TRUE", "1", "YES"):
     os.environ.pop("GOOGLE_API_KEY", None)
     os.environ.pop("GEMINI_API_KEY", None)
+
 from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
-from agents.video_agent import agent as video_agent
+from agents.video_agent import adk_agent as video_adk
 from agents.transcription_agent import agent as transcription_agent
-from agents.url_context_agent import agent as url_agent
+from agents.transcription_live import register_transcription_live_ws
+from agents.url_context_agent import adk_agent as url_adk
 from agents.licitaciones_agent import agent as licitaciones_agent
 from agents.campaign_agent import agent as campaign_agent
 from agents.investigacion_agent import agent as investigacion_agent
 from agents.projects_agent import agent as projects_agent
 from agents.resumen_reuniones_agent import adk_agent as resumen_reuniones_adk
+from agents.soporte_agent import adk_agent as soporte_adk
 
 app = FastAPI(title="Unified AG-UI Project")
 
@@ -38,21 +41,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize ADK wrappers for each agent
+# Agentes con App + plugins (from_app)
 agents = {
-    "video_producer": ADKAgent(adk_agent=video_agent, app_name="video_app"),
+    "video_producer": video_adk,
+    "url_expert": url_adk,
+    "resumen_reuniones": resumen_reuniones_adk,
+    "soporte": soporte_adk,
+    # Agentes LlmAgent simples
     "transcription": ADKAgent(adk_agent=transcription_agent, app_name="transcription_app"),
-    "url_expert": ADKAgent(adk_agent=url_agent, app_name="url_app"),
     "licitaciones": ADKAgent(adk_agent=licitaciones_agent, app_name="licitaciones_app"),
     "campaign_expert": ADKAgent(adk_agent=campaign_agent, app_name="campaign_app"),
     "investigacion_fuentes": ADKAgent(adk_agent=investigacion_agent, app_name="investigacion_app"),
     "projects": ADKAgent(adk_agent=projects_agent, app_name="projects_app"),
-    "resumen_reuniones": resumen_reuniones_adk,
 }
 
-# Add endpoints for each agent
 for agent_id, adk_wrapper in agents.items():
     add_adk_fastapi_endpoint(app, adk_wrapper, path=f"/{agent_id}")
+
+register_transcription_live_ws(app)
+
 
 def _gcp_project_misconfigured(project: str) -> bool:
     if not project:
@@ -65,7 +72,6 @@ def _gcp_project_misconfigured(project: str) -> bool:
     }
     if project.lower() in invalid:
         return True
-    # Valor literal del nombre de la variable (error típico en Coolify)
     if project.upper() == "GOOGLE_CLOUD_PROJECT":
         return True
     if project.startswith("GOOGLE_") or project.startswith("${"):
@@ -80,10 +86,13 @@ def health():
     return {
         "status": "ok" if not gcp_misconfigured else "degraded",
         "agents": list(agents.keys()),
+        "websocket": ["/transcription/live/ws"],
         "gcp": {
             "project_set": bool(project),
             "project_id": project or None,
             "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            "datastore_id": os.environ.get("DATASTORE_ID") or None,
+            "soporte_datastore_id": os.environ.get("SOPORTE_DATASTORE_ID") or os.environ.get("DATASTORE_ID") or None,
             "misconfigured": gcp_misconfigured,
             "hint": (
                 "GOOGLE_CLOUD_PROJECT debe ser el ID real del proyecto GCP "
@@ -93,6 +102,7 @@ def health():
             else None,
         },
     }
+
 
 if __name__ == "__main__":
     import uvicorn
