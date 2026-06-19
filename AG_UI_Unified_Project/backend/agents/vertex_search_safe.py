@@ -19,6 +19,14 @@ log = logging.getLogger(__name__)
 # Discovery Engine datastores suelen estar en `global`, no en us-central1.
 VERTEX_SEARCH_LOCATION = os.getenv("VERTEX_SEARCH_LOCATION", "global")
 
+# Tras un 403, no volver a llamar a la API en este proceso (acelera fallback web).
+_permission_denied_cache: set[str] = set()
+
+
+def is_vertex_search_denied(project_id: str, datastore_id: str) -> bool:
+    """True si ya vimos 403 IAM para este datastore en este proceso."""
+    return build_datastore_path(project_id, datastore_id) in _permission_denied_cache
+
 
 def build_datastore_path(project_id: str, datastore_id: str) -> str:
     return (
@@ -78,6 +86,13 @@ def make_search_tool(project_id: str, datastore_id: str) -> FunctionTool:
                 "message": "No encontré información sobre esto en los documentos.",
             }
 
+        if datastore_path in _permission_denied_cache:
+            return {
+                "status": "permission_denied",
+                "results": [],
+                "message": "No encontré información sobre esto en los documentos.",
+            }
+
         try:
             token = _access_token()
             response = httpx.post(
@@ -91,6 +106,7 @@ def make_search_tool(project_id: str, datastore_id: str) -> FunctionTool:
             )
 
             if response.status_code == 403:
+                _permission_denied_cache.add(datastore_path)
                 log.error(
                     "[vertex_search] 403 PERMISSION_DENIED — falta roles/discoveryengine.user "
                     "en la service account para %s",

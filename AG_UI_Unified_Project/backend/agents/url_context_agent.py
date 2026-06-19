@@ -24,7 +24,11 @@ from google.genai import types
 
 load_dotenv()
 
-from agents.vertex_search_safe import build_datastore_path, make_search_tool
+from agents.vertex_search_safe import (
+    build_datastore_path,
+    is_vertex_search_denied,
+    make_search_tool,
+)
 
 # ── Configuración Vertex AI Search & BigQuery ─────────────────────────────────
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "")
@@ -349,8 +353,16 @@ def before_root_agent(
 
     grupo = detectar_grupo_url(last_user_message)
     usa_rag = es_consulta_rag(last_user_message)
+    rag_denied = PROJECT_ID and DATASTORE_ID and is_vertex_search_denied(PROJECT_ID, DATASTORE_ID)
 
-    if usa_rag:
+    if rag_denied:
+        web_urls = grupo["urls"] if grupo else ["https://lumacloud.co/"]
+        hint = (
+            "RAG no disponible (permisos IAM). Usa SOLO web_agent. "
+            f"URLs a consultar: {', '.join(web_urls)}"
+        )
+        print("[root] → web-only (RAG bloqueado por IAM 403, cache activo)")
+    elif usa_rag:
         hint = (
             "Usa rag_agent primero. "
             "Si responde 'No encontré información sobre esto en los documentos', "
