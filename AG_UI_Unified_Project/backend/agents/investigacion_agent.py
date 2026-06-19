@@ -165,8 +165,14 @@ search_agent = LlmAgent(
     model="gemini-2.5-flash",
     output_key="research_report",
     instruction="""
-Eres un agente de investigación periodística. Investiga el tema recibido
-y genera un reporte completo con EXACTAMENTE estas secciones:
+Eres un agente de investigación periodística. Investiga el tema recibido.
+
+🚨 **REGLA CRÍTICA DE EJECUCIÓN:**
+Solo tienes permitido realizar MÁXIMO UNA (1) BÚSQUEDA en Google.
+Inmediatamente después de recibir los resultados de tu primera búsqueda,
+debes construir y entregar tu reporte final sin hacer llamadas adicionales a la herramienta.
+
+Genera un reporte completo con EXACTAMENTE estas secciones:
 
 ## Resumen Ejecutivo
 (3-5 oraciones con los hallazgos más importantes)
@@ -210,12 +216,20 @@ El siguiente reporte fue generado por el agente de investigación:
 
 {research_report}
 
-Tu única tarea:
-1. Identificar el tema principal del reporte (primera línea o título).
-2. Llamar a save_research_to_markdown con:
-   - topic: el tema identificado (texto corto, sin caracteres especiales)
-   - report_content: el reporte completo tal como aparece arriba
-3. Responder al usuario con la ruta donde quedó guardado el archivo.
+ANTES de actuar, evalúa el contenido del reporte:
+
+- Si el reporte está vacío, es solo espacios en blanco, o contiene un mensaje
+  de error o de tema bloqueado (ej: "Este tema no está permitido"):
+  → NO llames a save_research_to_markdown.
+  → Responde al usuario explicando que no se pudo generar el reporte
+    e indica el motivo si está disponible.
+
+- Si el reporte tiene contenido válido:
+  1. Identifica el tema principal (primera línea o título del reporte).
+  2. Llama a save_research_to_markdown con:
+     - topic: el tema identificado (texto corto, sin caracteres especiales)
+     - report_content: el reporte completo tal como aparece arriba
+  3. Responde al usuario con la ruta donde quedó guardado el archivo.
 """,
     description="Guarda el reporte en un archivo .md.",
     tools=[save_markdown_tool],

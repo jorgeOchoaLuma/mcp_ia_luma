@@ -21,6 +21,11 @@ services:
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-bucket_data1}
       BQ_DATASET_ID: ${BQ_DATASET_ID:-}
       BQ_LOCATION: ${BQ_LOCATION:-us-central1}
+      ZOHO_REFRESH_TOKEN: ${ZOHO_REFRESH_TOKEN:-}
+      ZOHO_CLIENT_ID: ${ZOHO_CLIENT_ID:-}
+      ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET:-}
+      ZOHO_SHEET_WORKBOOK_ID: ${ZOHO_SHEET_WORKBOOK_ID:-}
+      DOWNLOAD_BASE_PATH: ${DOWNLOAD_BASE_PATH:-./cvs_descargados}
     healthcheck:
       test:
         [

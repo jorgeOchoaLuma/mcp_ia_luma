@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useCopilotChat } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import { useSelectedAgent } from "./agent-provider";
@@ -18,12 +18,21 @@ import {
   Users,
   Paperclip,
   LifeBuoy,
+  Briefcase,
 } from "lucide-react";
+
+const SAVE_KEYWORDS = ["ya terminé", "guarda", "guardar", "fin", "terminar", "save", "done"];
+
+function isSaveKeyword(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return SAVE_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 const AGENTS = [
   { id: "video_producer", name: "Productor de Video", icon: Video, source: "AG_UI_agent_asistentente_video" },
   { id: "url_expert", name: "Experto Luma (Web)", icon: Globe, source: "AG_UI_agente_url_contexto_luma" },
   { id: "soporte", name: "Soporte Luma", icon: LifeBuoy, source: "AG-UI_Agente_soporte" },
+  { id: "analisis_hv", name: "Análisis HV / Reclutamiento", icon: Briefcase, source: "AG-UI_AnalisisHV" },
   { id: "campaign_expert", name: "Experto en Campañas", icon: Megaphone, source: "AU_UI_Agente_campana" },
   { id: "resumen_reuniones", name: "Resumen de Reuniones", icon: Users, source: "AG_UI_agente_resumen_reuniones" },
   { id: "projects", name: "Proyectos Zoho", icon: FolderKanban, source: "AG-UI_project" },
@@ -98,7 +107,16 @@ function MicButton() {
   const { appendMessage } = useCopilotChat();
   const [isRecording, setIsRecording] = useState(false);
   const [supported, setSupported] = useState(true);
+  const [liveText, setLiveText] = useState("");
   const recognitionRef = useRef<any>(null);
+  const accumulatedRef = useRef<string[]>([]);
+
+  const sendToAgent = useCallback(
+    (text: string) => {
+      appendMessage(new TextMessage({ content: text, role: Role.User }));
+    },
+    [appendMessage]
+  );
 
   useEffect(() => {
     const SpeechRecognition =
@@ -112,28 +130,83 @@ function MicButton() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = "es-ES";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      if (transcript.trim()) {
-        appendMessage(new TextMessage({ content: transcript, role: Role.User }));
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript.trim() + " ";
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      const accumulated = accumulatedRef.current.join(" ");
+      setLiveText(
+        [accumulated, finalTranscript, interimTranscript].filter(Boolean).join(" ").trim()
+      );
+
+      if (finalTranscript.trim()) {
+        if (isSaveKeyword(finalTranscript)) {
+          const full = [...accumulatedRef.current, finalTranscript.trim()].join(" ");
+          accumulatedRef.current = [];
+          setLiveText("");
+          sendToAgent(full);
+          recognition.stop();
+          setIsRecording(false);
+        } else {
+          accumulatedRef.current.push(finalTranscript.trim());
+        }
       }
     };
 
-    recognition.onend = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => {
+      if (recognitionRef.current?._active) {
+        try {
+          recognition.start();
+        } catch {
+          /* ignore */
+        }
+      } else {
+        setIsRecording(false);
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      if (e.error !== "no-speech") {
+        setIsRecording(false);
+        recognitionRef.current._active = false;
+      }
+    };
 
     recognitionRef.current = recognition;
-  }, [appendMessage]);
+  }, [sendToAgent]);
 
   const toggle = () => {
-    if (!recognitionRef.current) return;
+    const rec = recognitionRef.current;
+    if (!rec) return;
+
     if (isRecording) {
-      recognitionRef.current.stop();
+      rec._active = false;
+      rec.stop();
+      setIsRecording(false);
+      if (accumulatedRef.current.length > 0) {
+        const full = accumulatedRef.current.join(" ") + " guardar";
+        accumulatedRef.current = [];
+        setLiveText("");
+        sendToAgent(full);
+      }
     } else {
-      recognitionRef.current.start();
+      accumulatedRef.current = [];
+      setLiveText("");
+      rec._active = true;
+      rec.start();
       setIsRecording(true);
     }
   };
@@ -141,15 +214,29 @@ function MicButton() {
   if (!supported) return null;
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={`fixed bottom-24 right-6 z-50 p-4 rounded-full shadow-lg transition-all ${
-        isRecording ? "bg-red-500 scale-110" : "bg-indigo-600 hover:bg-indigo-700"
-      }`}
-    >
-      {isRecording ? <MicOff className="text-white" /> : <Mic className="text-white" />}
-    </button>
+    <>
+      {isRecording && liveText && (
+        <div className="fixed bottom-40 right-6 z-50 max-w-xs bg-gray-900/95 text-gray-100 rounded-xl p-3 text-sm border border-indigo-500/40 shadow-lg">
+          <div className="text-indigo-400 text-xs font-semibold mb-1">🎙️ Transcribiendo...</div>
+          {liveText}
+        </div>
+      )}
+      {isRecording && !liveText && (
+        <div className="fixed bottom-40 right-6 z-50 bg-gray-900/95 text-indigo-400 rounded-xl px-3 py-2 text-xs border border-indigo-500/40">
+          🎙️ Escuchando...
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={toggle}
+        title={isRecording ? "Detener y guardar" : "Hablar"}
+        className={`fixed bottom-24 right-6 z-50 p-4 rounded-full shadow-lg transition-all ${
+          isRecording ? "bg-red-500 scale-110" : "bg-indigo-600 hover:bg-indigo-700"
+        }`}
+      >
+        {isRecording ? <MicOff className="text-white" /> : <Mic className="text-white" />}
+      </button>
+    </>
   );
 }
 
@@ -201,13 +288,14 @@ export default function Page() {
             CopilotKit usa el id <strong className="text-gray-300">{selectedAgent}</strong> en el sidebar.
             {selectedAgent === "resumen_reuniones" && " Usa el clip 📎 para subir archivos a GCS."}
             {selectedAgent === "transcription" && " Di 'guardar' al terminar. Live WS: /transcription/live/ws"}
+            {selectedAgent === "analisis_hv" && " Conecta con Zoho Recruit: lista perfiles, descarga CVs y exporta ranking."}
           </p>
         </div>
       </div>
 
       <CopilotSidebar agent={selectedAgent} defaultOpen />
       {selectedAgent === "resumen_reuniones" && <UploadButton />}
-      <MicButton />
+      {selectedAgent === "transcription" && <MicButton />}
     </main>
   );
 }

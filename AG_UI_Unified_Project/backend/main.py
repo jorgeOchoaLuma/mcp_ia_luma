@@ -21,7 +21,7 @@ if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() in ("TRUE", "1", "YES
 from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
 from agents.video_agent import adk_agent as video_adk
-from agents.transcription_agent import agent as transcription_agent
+from agents.transcription_agent import adk_agent as transcription_adk
 from agents.transcription_live import register_transcription_live_ws
 from agents.url_context_agent import adk_agent as url_adk
 from agents.licitaciones_agent import agent as licitaciones_agent
@@ -30,6 +30,7 @@ from agents.investigacion_agent import agent as investigacion_agent
 from agents.projects_agent import agent as projects_agent
 from agents.resumen_reuniones_agent import adk_agent as resumen_reuniones_adk
 from agents.soporte_agent import adk_agent as soporte_adk
+from agents.analisis_hv.analisis_hv_agent import adk_agent as analisis_hv_adk
 
 app = FastAPI(title="Unified AG-UI Project")
 
@@ -47,8 +48,9 @@ agents = {
     "url_expert": url_adk,
     "resumen_reuniones": resumen_reuniones_adk,
     "soporte": soporte_adk,
+    "analisis_hv": analisis_hv_adk,
     # Agentes LlmAgent simples
-    "transcription": ADKAgent(adk_agent=transcription_agent, app_name="transcription_app"),
+    "transcription": transcription_adk,
     "licitaciones": ADKAgent(adk_agent=licitaciones_agent, app_name="licitaciones_app"),
     "campaign_expert": ADKAgent(adk_agent=campaign_agent, app_name="campaign_app"),
     "investigacion_fuentes": ADKAgent(adk_agent=investigacion_agent, app_name="investigacion_app"),
