@@ -59,7 +59,10 @@ URL_GROUPS = {
     "partners": {
         "raiz": "https://lumacloud.co/partners/",
         "urls": ["https://lumacloud.co/partners/"],
-        "keywords": ["partners", "testimonio", "formulario"],
+        "keywords": [
+            "partners", "testimonio", "testimonios", "formulario",
+            "clientes", "casos de éxito", "caso de éxito",
+        ],
     },
     "csirt": {
         "raiz": "https://lumacloud.co/csirt/",
@@ -185,8 +188,25 @@ def set_last_user_text(llm_request: LlmRequest, index: int, nuevo_texto: str) ->
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+PARTNER_QUERY_PHRASES = [
+    "empresas que usan",
+    "empresas usan",
+    "qué empresas",
+    "que empresas",
+    "quién usa",
+    "quien usa",
+    "quienes usan",
+    "clientes de luma",
+    "casos de éxito",
+]
+
+
 def detectar_grupo_url(mensaje: str) -> dict | None:
     msg = mensaje.lower()
+    if any(phrase in msg for phrase in PARTNER_QUERY_PHRASES):
+        return URL_GROUPS["partners"]
+    if any(kw in msg for kw in ("clientes", "partners", "testimonio", "testimonios")):
+        return URL_GROUPS["partners"]
     for config in URL_GROUPS.values():
         for keyword in config["keywords"]:
             if keyword in msg:
@@ -243,12 +263,13 @@ def before_web_agent(
         return blocked
 
     grupo = detectar_grupo_url(last_user_message)
-    urls = grupo["urls"] if grupo else [URL_DEFAULT]
+    # Una sola URL raíz por consulta — evita 8+ scrapes lentos por pregunta.
+    urls = [grupo["raiz"]] if grupo else [URL_DEFAULT]
     raiz = grupo["raiz"] if grupo else URL_DEFAULT
 
     urls_texto = "\n".join(f'- fetch_url_content("{url}")' for url in urls)
     nuevo_mensaje = (
-        f"Llama a fetch_url_content para cada una de estas URLs y úsalas para responder:\n"
+        f"Llama a fetch_url_content SOLO para esta URL y úsala para responder:\n"
         f"{urls_texto}\n\n"
         f"Pregunta del usuario: {last_user_message}"
     )
@@ -283,8 +304,8 @@ web_agent = LlmAgent(
 Eres el agente web de Luma Cloud. Tu única fuente son las páginas de lumacloud.co.
 
 ## FLUJO
-1. Llama a `fetch_url_content` para CADA URL indicada en el mensaje antes de responder.
-2. Responde ÚNICAMENTE con el contenido retornado por esas llamadas.
+1. Llama a `fetch_url_content` para la URL indicada en el mensaje (solo una por turno).
+2. Responde ÚNICAMENTE con el contenido retornado por esa llamada.
 3. Si no hay información → "No encontré esa información en el sitio de Luma Cloud."
 4. Cita la URL de donde proviene cada dato.
 5. Usa el idioma del usuario.
@@ -356,10 +377,10 @@ def before_root_agent(
     rag_denied = PROJECT_ID and DATASTORE_ID and is_vertex_search_denied(PROJECT_ID, DATASTORE_ID)
 
     if rag_denied:
-        web_urls = grupo["urls"] if grupo else ["https://lumacloud.co/"]
+        raiz = grupo["raiz"] if grupo else "https://lumacloud.co/partners/"
         hint = (
-            "RAG no disponible (permisos IAM). Usa SOLO web_agent. "
-            f"URLs a consultar: {', '.join(web_urls)}"
+            "RAG no disponible (permisos IAM). Usa SOLO web_agent con UNA URL: "
+            f"{raiz}"
         )
         print("[root] → web-only (RAG bloqueado por IAM 403, cache activo)")
     elif usa_rag:
