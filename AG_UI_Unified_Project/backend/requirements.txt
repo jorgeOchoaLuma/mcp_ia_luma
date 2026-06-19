@@ -9,6 +9,7 @@ mcp
 google-cloud-bigquery
 google-cloud-bigquery-storage
 google-cloud-storage
+google-auth
 pyarrow
 beautifulsoup4
 httpx

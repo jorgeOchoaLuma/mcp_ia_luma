@@ -16,9 +16,10 @@ from google.adk.plugins.bigquery_agent_analytics_plugin import (
     BigQueryAgentAnalyticsPlugin,
     BigQueryLoggerConfig,
 )
-from google.adk.tools import VertexAiSearchTool
 from google.genai import types
 from ag_ui_adk import ADKAgent
+
+from agents.vertex_search_safe import build_datastore_path, make_search_tool
 
 load_dotenv()
 
@@ -103,12 +104,9 @@ def after_guardrail(
 
 tools = []
 if PROJECT_ID and DATASTORE_ID:
-    datastore_path = (
-        f"projects/{PROJECT_ID}/locations/{LOCATION}"
-        f"/collections/default_collection/dataStores/{DATASTORE_ID}"
-    )
+    datastore_path = build_datastore_path(PROJECT_ID, DATASTORE_ID)
     log.info("[soporte] Vertex AI Search: %s", datastore_path)
-    tools.append(VertexAiSearchTool(data_store_id=datastore_path))
+    tools.append(make_search_tool(PROJECT_ID, DATASTORE_ID))
 
 root_agent = LlmAgent(
     name="luma_soporte_agent",
@@ -118,7 +116,7 @@ root_agent = LlmAgent(
 Eres el asistente de soporte de Luma Cloud, especializado en soporte nivel 1.
 
 ## FLUJO
-1. SIEMPRE usa la herramienta de búsqueda antes de responder cualquier pregunta, incluyendo la búsqueda de videos.
+1. SIEMPRE usa `search_internal_documents` antes de responder cualquier pregunta, incluyendo la búsqueda de videos.
 2. Responde basándote ÚNICAMENTE en los resultados de la búsqueda.
 3. Si no encuentras información → responde:
    "No encontré información o videos sobre esto en los documentos. Te recomiendo contactar

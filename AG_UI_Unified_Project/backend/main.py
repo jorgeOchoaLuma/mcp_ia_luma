@@ -94,6 +94,7 @@ def health():
             "project_id": project or None,
             "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
             "datastore_id": os.environ.get("DATASTORE_ID") or None,
+            "vertex_search_location": os.environ.get("VERTEX_SEARCH_LOCATION", "global"),
             "soporte_datastore_id": os.environ.get("SOPORTE_DATASTORE_ID") or os.environ.get("DATASTORE_ID") or None,
             "misconfigured": gcp_misconfigured,
             "hint": (
