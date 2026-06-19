@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from gcp_credentials import setup_gcp_credentials
+from gcp_credentials import setup_gcp_credentials, get_service_account_email
 
 load_dotenv()
 setup_gcp_credentials(base_dir=Path(__file__).resolve().parent)
@@ -93,9 +93,19 @@ def health():
             "project_set": bool(project),
             "project_id": project or None,
             "location": os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+            "vertex_ai_mode": os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() in ("TRUE", "1", "YES"),
+            "service_account": get_service_account_email(),
+            "credentials_source": (
+                "GOOGLE_APPLICATION_CREDENTIALS_BASE64"
+                if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_BASE64")
+                else "GOOGLE_APPLICATION_CREDENTIALS"
+                if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+                else "ADC"
+            ),
             "datastore_id": os.environ.get("DATASTORE_ID") or None,
             "vertex_search_location": os.environ.get("VERTEX_SEARCH_LOCATION", "global"),
             "soporte_datastore_id": os.environ.get("SOPORTE_DATASTORE_ID") or os.environ.get("DATASTORE_ID") or None,
+            "discovery_engine_role_needed": "roles/discoveryengine.user",
             "misconfigured": gcp_misconfigured,
             "hint": (
                 "GOOGLE_CLOUD_PROJECT debe ser el ID real del proyecto GCP "
