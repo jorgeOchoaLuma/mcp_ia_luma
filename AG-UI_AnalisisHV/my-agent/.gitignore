@@ -1,11 +1,37 @@
-# Python-generated files
+# Backend Python (my-agent) — copiar como .gitignore
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Credenciales GCP / Zoho
+credentials/
+zippy-sublime-*.json
+updatezippy-*.json
+*-service-account*.json
+*.pem
+
+# Python
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+.venv/
+venv/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
 
-# Virtual environments
-.venv
-.env
+# Logs / temp
+*.log
+error.log
+.adk/
+cvs_descargados/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

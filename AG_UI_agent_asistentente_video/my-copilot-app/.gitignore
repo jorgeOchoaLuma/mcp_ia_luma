@@ -1,6 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Frontend Next.js (my-copilot-app) — copiar como .gitignore
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +10,37 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# Next.js
 /.next/
 /out/
-
-# production
 /build
+.turbo/
+.vercel/
 
-# misc
-.DS_Store
-*.pem
+# Secrets (permitir .env.example)
+.env
+.env.*
+!.env.example
+!.env.local.example
 
-# debug
+# Credenciales
+credentials/
+zippy-sublime-*.json
+updatezippy-*.json
+
+# Debug / misc
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
+.DS_Store
+*.pem
 *.tsbuildinfo
 next-env.d.ts
+
+# Testing
+/coverage
+
+# Uploads locales
+/public/uploads/*
+!/public/uploads/.gitkeep

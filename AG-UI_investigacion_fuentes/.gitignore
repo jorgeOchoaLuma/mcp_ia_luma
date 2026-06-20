@@ -6,6 +6,3 @@
 credentials/
 .DS_Store
 *.log
-my-copilot-app/public/uploads/*.mp4
-my-copilot-app/public/uploads/*.mp3
-my-copilot-app/public/uploads/*.wav

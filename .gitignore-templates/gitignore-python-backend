@@ -7,6 +7,8 @@
 
 # Credenciales GCP / Zoho
 credentials/
+zippy-sublime-488620-q2-c09d7b13b76c.json
+updatezippy-sublime-488620-q2-c09d7b13b76c (1).json
 zippy-sublime-*.json
 updatezippy-*.json
 *-service-account*.json
