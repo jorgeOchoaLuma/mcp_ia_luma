@@ -1,0 +1,15 @@
+[project]
+name = "zoho-desk-agent"
+version = "0.1.0"
+description = "AG-UI agent for Zoho Desk ticket operations via MCP"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ag-ui-adk>=0.5.1",
+    "fastapi>=0.135.1",
+    "google-adk>=1.27.2,<2.0",
+    "mcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "uvicorn>=0.42.0",
+]
