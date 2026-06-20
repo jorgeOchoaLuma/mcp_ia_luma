@@ -27,7 +27,7 @@ logging.getLogger("google_adk").setLevel(logging.DEBUG)
 # ── Variables de entorno ──────────────────────────────────────────────────────
 PROJECT_ID    = os.getenv("GOOGLE_CLOUD_PROJECT", "")
 LOCATION      = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
-DATASTORE_ID  = os.getenv("DATASTORE_ID", "")
+DATASTORE_ID_soporte  = os.getenv("DATASTORE_ID_soporte", "")
 BQ_DATASET_ID = os.getenv("BQ_DATASET_ID", "")
 BQ_LOCATION   = os.getenv("BQ_LOCATION", "US")  # "US", "EU" o región específica
 
@@ -36,7 +36,7 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 
 DATASTORE_PATH = (
     f"projects/{PROJECT_ID}/locations/{LOCATION}"
-    f"/collections/default_collection/dataStores/{DATASTORE_ID}"
+    f"/collections/default_collection/dataStores/{DATASTORE_ID_soporte}"
 )
 
 # ── Guardrails ────────────────────────────────────────────────────────────────
