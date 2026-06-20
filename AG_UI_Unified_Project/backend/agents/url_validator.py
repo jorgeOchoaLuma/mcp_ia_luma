@@ -44,6 +44,14 @@ SUSPICIOUS_URL_PATTERNS: list[str] = [
     r"(adult|xxx|porn|casino|bet|poker)",               # contenido no apto
 ]
 
+# Dominio de redirección de Google Search grounding (built-in google_search tool).
+# No es un dominio "de confianza" en el sentido normal de TRUSTED_DOMAINS —
+# es un link de Google que redirige a la fuente real. Google NO expone esa
+# URL real en este punto, es intencional (ver
+# https://ai.google.dev/gemini-api/docs/google-search), así que se etiqueta
+# aparte en vez de quedar sin marca, como pasaba antes.
+GOOGLE_GROUNDING_DOMAIN = "vertexaisearch.cloud.google.com"
+
 # Alta confianza — instituciones y medios de referencia
 TRUSTED_DOMAINS: set[str] = {
     # Organismos internacionales
@@ -100,6 +108,12 @@ def _label_url(url: str) -> str:
     blocked, reason = _is_blocked(url)
     if blocked:
         return f"**[⛔ BLOQUEADA: {reason}]**"
+    domain = _extract_domain(url)
+    if domain == GOOGLE_GROUNDING_DOMAIN:
+        # Link de redirección de Google Search grounding. No podemos validar
+        # el dominio real de la fuente porque Google no lo expone aquí —
+        # es el comportamiento esperado, no un error del agente.
+        return "**[🔗 Google Search grounding — redirige a la fuente]**"
     if _is_trusted(url):
         return f"**[✅ Fuente verificada]**"
     return ""  # Sin etiqueta — no está en ninguna lista
@@ -205,10 +219,20 @@ def after_model_url_scanner(
     llm_response: LlmResponse,
 ) -> Optional[LlmResponse]:
     """Etiqueta URLs en la respuesta final. Sin requests HTTP."""
+
+    # ── DIAGNÓSTICO TEMPORAL ─────────────────────────────────────────
+    # Descomenta estas 3 líneas una vez para confirmar si tu versión de
+    # ADK sí está poblando grounding_chunks/grounding_supports con la tool
+    # nativa google_search (hay un bug conocido donde quedan en None:
+    # https://github.com/google/adk-python/issues/3287).
+    # gm = getattr(llm_response, "grounding_metadata", None)
+    # if gm:
+    #     print(f"[DEBUG grounding_metadata] chunks={gm.grounding_chunks!r} supports={gm.grounding_supports!r}")
+
     if not (llm_response.content and llm_response.content.parts):
         return llm_response
 
-    stats = {"trusted": 0, "blocked": 0}
+    stats = {"trusted": 0, "blocked": 0, "grounding": 0}
 
     for part in llm_response.content.parts:
         if not (hasattr(part, "text") and part.text):
@@ -223,6 +247,8 @@ def after_model_url_scanner(
                 stats["blocked"] += 1
             elif "✅" in label:
                 stats["trusted"] += 1
+            elif "🔗" in label:
+                stats["grounding"] += 1
 
         # Resumen al final
         total = sum(stats.values())
@@ -231,6 +257,7 @@ def after_model_url_scanner(
                 f"\n\n---\n"
                 f"**Validación de fuentes:** "
                 f"✅ {stats['trusted']} verificadas · "
+                f"🔗 {stats['grounding']} vía Google Search grounding · "
                 f"⛔ {stats['blocked']} bloqueadas"
             )
         break

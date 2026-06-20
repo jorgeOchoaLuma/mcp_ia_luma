@@ -1,31 +1,75 @@
 """
-Research Agent con Google ADK (Versión Integrada)
+Research Agent con Google ADK
 Arquitectura: SequentialAgent
 
   1. SearchAgent  → google_search (built-in only)
                     output_key="research_report"
   2. SaverAgent   → save_research_to_markdown (FunctionTool only)
-                    input_key="research_report"
+                    lee {research_report} desde session.state
+
+Gemini no permite mezclar built-in tools con FunctionTool en el mismo agente.
+El traspaso entre agentes se hace con output_key / instruction template.
+
+Analytics: BigQuery Agent Analytics Plugin
+  - Requiere envolver el root_agent en un App() (no se puede pasar
+    el plugin directo a ADKAgent).
+  - Por eso ADKAgent se construye con ADKAgent.from_app(app, ...)
+    en vez de ADKAgent(adk_agent=agent, ...).
 """
 
+import os
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+load_dotenv()
+
+# ── Variables de entorno para Vertex AI + BigQuery Agent Analytics ──
+# CRÍTICO: deben quedar fijadas ANTES de que ADK instancie cualquier
+# modelo Gemini, porque el SDK de GenAI las lee al inicializar el cliente.
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
+VERTEX_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
+BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "agente_analytics_db")
+BQ_LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
+
+if not PROJECT_ID:
+    raise ValueError(
+        "Falta GOOGLE_CLOUD_PROJECT en el .env. "
+        "El plugin de BigQuery Agent Analytics lo necesita para escribir eventos."
+    )
+
+os.environ["GOOGLE_CLOUD_PROJECT"] = PROJECT_ID
+os.environ["GOOGLE_CLOUD_LOCATION"] = VERTEX_LOCATION
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
+
+# ── ADK core ──────────────────────────────────────────────────
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.apps import App
 from google.adk.models import LlmRequest, LlmResponse
+from google.adk.plugins.bigquery_agent_analytics_plugin import (
+    BigQueryAgentAnalyticsPlugin,
+    BigQueryLoggerConfig,
+)
 from google.adk.tools import google_search
 from google.adk.tools.function_tool import FunctionTool
 from google.genai.types import Content, Part
 
-from agents.url_validator import (
+# ── Web / API ─────────────────────────────────────────────────
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
+
+# ── Validador de URLs local ────────────────────────────────────
+from url_validator import (
     before_tool_callback,
     after_tool_callback,
     before_model_url_filter,
     after_model_url_scanner,
 )
+
 
 # ═══════════════════════════════════════════════════════════════
 #  TOOL: Guardar reporte en Markdown (cross-platform)
@@ -43,6 +87,7 @@ def save_research_to_markdown(topic: str, report_content: str) -> str:
     Returns:
         Mensaje con la ruta guardada o error.
     """
+
     def clean_text(text: str) -> str:
         text = text.replace("\r\n", "\n").replace("\r", "\n")
         lines = [line.rstrip() for line in text.split("\n")]
@@ -85,11 +130,13 @@ def save_research_to_markdown(topic: str, report_content: str) -> str:
                 i += 1
         return "\n".join(result)
 
+    # Nombre de archivo seguro (cross-platform)
     safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", topic)
     safe_name = safe_name.strip().replace(" ", "_")[:80] or "investigacion"
     fecha = datetime.now().strftime("%Y-%m-%d")
     filename = f"{safe_name}_{fecha}.md"
 
+    # Directorio cross-platform con pathlib
     output_dir = Path.home() / "Documents" / "investigaciones"
     output_dir.mkdir(parents=True, exist_ok=True)
     file_path = output_dir / filename
@@ -116,13 +163,16 @@ def save_research_to_markdown(topic: str, report_content: str) -> str:
         print(f"[SAVE] ❌ Error: {e}")
         return f"❌ Error al guardar: {e}"
 
+
 save_markdown_tool = FunctionTool(func=save_research_to_markdown)
+
 
 # ═══════════════════════════════════════════════════════════════
 #  CALLBACKS (SearchAgent)
 # ═══════════════════════════════════════════════════════════════
 
 BLOCKED_TOPICS = ["desinformación", "fake news", "propaganda", "manipulación masiva"]
+
 
 def before_model_callback(
     callback_context: CallbackContext,
@@ -149,6 +199,7 @@ def before_model_callback(
         )
     return before_model_url_filter(callback_context, llm_request)
 
+
 def after_model_callback(
     callback_context: CallbackContext,
     llm_response: LlmResponse,
@@ -156,13 +207,15 @@ def after_model_callback(
     print(f"[SEARCH] Escaneando URLs en respuesta...")
     return after_model_url_scanner(callback_context, llm_response)
 
+
 # ═══════════════════════════════════════════════════════════════
 #  AGENTE 1 – SearchAgent
+#  output_key="research_report" → escribe resultado en session.state
 # ═══════════════════════════════════════════════════════════════
 
 search_agent = LlmAgent(
     name="SearchAgent",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",   # CORREGIDO: gemini-3.1-flash-lite-preview no es un modelo válido
     output_key="research_report",
     instruction="""
 Eres un agente de investigación periodística. Investiga el tema recibido.
@@ -204,13 +257,15 @@ Indica siempre si algo es opinión vs. hecho verificado.
     after_model_callback=after_model_callback,
 )
 
+
 # ═══════════════════════════════════════════════════════════════
 #  AGENTE 2 – SaverAgent
+#  Lee {research_report} desde session.state vía instruction template
 # ═══════════════════════════════════════════════════════════════
 
 saver_agent = LlmAgent(
     name="SaverAgent",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     instruction="""
 El siguiente reporte fue generado por el agente de investigación:
 
@@ -235,15 +290,69 @@ ANTES de actuar, evalúa el contenido del reporte:
     tools=[save_markdown_tool],
 )
 
+
 # ═══════════════════════════════════════════════════════════════
-#  ROOT AGENT
+#  ROOT AGENT – Pipeline secuencial
 # ═══════════════════════════════════════════════════════════════
 
-agent = SequentialAgent(
+investigacion = SequentialAgent(
     name="ResearchAgent",
     description=(
         "Investiga fuentes fidedignas con Google Search "
-        "y guarda el reporte en Documents/investigaciones/"
+        "y guarda el reporte automáticamente en ~/Documents/investigaciones/"
     ),
     sub_agents=[search_agent, saver_agent],
+)
+
+root_agent = investigacion  # convención ADK (adk web / adk api_server lo buscan así)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  BIGQUERY AGENT ANALYTICS PLUGIN
+#  https://adk.dev/integrations/bigquery-agent-analytics/
+# ═══════════════════════════════════════════════════════════════
+
+bq_logger_config = BigQueryLoggerConfig(
+    enabled=True,
+    log_session_metadata=True,      # session_id, app_name, user_id, state
+    log_multi_modal_content=True,
+    create_views=True,              # genera v_llm_request, v_tool_completed, etc.
+    auto_schema_upgrade=True,
+    # custom_tags → útil para tu patrón multi-tenant: identifica qué
+    # cliente/proyecto generó cada evento si compartes dataset entre clientes.
+    custom_tags={
+        "cliente": "luma_cloud",
+        "agente": "research_agent",
+    },
+)
+
+bq_analytics_plugin = BigQueryAgentAnalyticsPlugin(
+    project_id=PROJECT_ID,
+    dataset_id=BQ_DATASET_ID,
+    location=BQ_LOCATION,           # ubicación del dataset de BigQuery (no confundir con GOOGLE_CLOUD_LOCATION)
+    config=bq_logger_config,
+)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  APP – necesario para usar plugins (BigQuery Analytics)
+# ═══════════════════════════════════════════════════════════════
+
+app_adk = App(
+    name="app_investigacion_fuentes_luma",
+    root_agent=root_agent,
+    plugins=[bq_analytics_plugin],
+)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ADKAgent (AG-UI) — from_app() en vez de adk_agent= directo
+#  porque los plugins viven en el App, no en el LlmAgent/SequentialAgent.
+# ═══════════════════════════════════════════════════════════════
+
+adk_agent = ADKAgent.from_app(
+    app_adk,
+    user_id="investigador_user",
+    session_timeout_seconds=3600,
+    use_in_memory_services=True,
 )
