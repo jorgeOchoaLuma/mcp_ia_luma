@@ -12,7 +12,7 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const AGENT_TIMEOUT_MS = 120_000;
 
-const runtime = new CopilotRuntime({
+const copilotRuntime = new CopilotRuntime({
     agents: {
         video_producer: new HttpAgent({ url: `${BACKEND_URL}/video_producer`, timeout: AGENT_TIMEOUT_MS }),
         transcription: new HttpAgent({ url: `${BACKEND_URL}/transcription`, timeout: AGENT_TIMEOUT_MS }),
@@ -35,7 +35,7 @@ export const runtime = "nodejs";
 
 export const POST = async (req: NextRequest) => {
     const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-        runtime,
+        runtime: copilotRuntime,
         serviceAdapter,
         endpoint: "/api/copilotkit",
     });

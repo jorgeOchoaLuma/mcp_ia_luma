@@ -4,6 +4,7 @@
 .env
 .env.*
 !.env.example
+.gcp_credentials_base64.txt
 
 # Credenciales GCP / Zoho
 credentials/

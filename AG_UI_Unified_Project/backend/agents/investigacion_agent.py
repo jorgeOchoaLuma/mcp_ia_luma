@@ -63,7 +63,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ag_ui_adk import ADKAgent, add_adk_fastapi_endpoint
 
 # ── Validador de URLs local ────────────────────────────────────
-from url_validator import (
+from agents.url_validator import (
     before_tool_callback,
     after_tool_callback,
     before_model_url_filter,
