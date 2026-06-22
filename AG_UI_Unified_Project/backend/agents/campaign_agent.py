@@ -155,10 +155,10 @@ def save_to_markdown(
 
     try:
         file_path.write_text(md_content, encoding="utf-8")
-        print(f"✅ Archivo guardado: {file_path}")
+        #print(f"✅ Archivo guardado: {file_path}")
         return (
             f"✅ Archivo guardado exitosamente.\n"
-            f"📁 Ruta: {file_path}\n"
+            #f"📁 Ruta: {file_path}\n"
             f"📄 Nombre: {filename}"
         )
     except Exception as e:

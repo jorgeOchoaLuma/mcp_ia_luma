@@ -156,7 +156,7 @@ def save_research_to_markdown(topic: str, report_content: str) -> str:
         print(f"[SAVE] ✅ Guardado: {file_path}")
         return (
             f"✅ Reporte guardado exitosamente.\n"
-            f"📁 Ruta: {file_path}\n"
+            #f"📁 Ruta: {file_path}\n"
             f"📄 Archivo: {filename}"
         )
     except Exception as e:
