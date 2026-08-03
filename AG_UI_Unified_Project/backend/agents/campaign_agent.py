@@ -388,7 +388,14 @@ save_agent = LlmAgent(
     - ad_content: {ad_content}
     - measurement_plan: {measurement_plan}
 
-    Llama a la herramienta UNA SOLA VEZ y confirma al usuario el resultado con la ruta del archivo.
+    Llama a la herramienta UNA SOLA VEZ. Luego confirma al usuario únicamente con el
+    nombre del archivo guardado (campo "Nombre" del resultado de la herramienta).
+
+    REGLAS ESTRICTAS:
+    - NUNCA menciones, repitas ni construyas la ruta completa del sistema de archivos
+      (rutas como /root/..., C:\\..., Documents/resultados_campanas/, etc.).
+    - No inventes ni infieras dónde se guardó el archivo más allá del nombre.
+    - Tu respuesta debe ser breve, ej: "✅ Archivo guardado: Acronis_Cyber_Protect_Cloud_2026-06-22.md"
     No generes contenido adicional.
     """,
     description="Guarda todos los resultados de la campaña en un archivo .md.",

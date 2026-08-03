@@ -279,12 +279,15 @@ ANTES de actuar, evalúa el contenido del reporte:
   → Responde al usuario explicando que no se pudo generar el reporte
     e indica el motivo si está disponible.
 
-- Si el reporte tiene contenido válido:
+Si el reporte tiene contenido válido:
   1. Identifica el tema principal (primera línea o título del reporte).
   2. Llama a save_research_to_markdown con:
      - topic: el tema identificado (texto corto, sin caracteres especiales)
      - report_content: el reporte completo tal como aparece arriba
-  3. Responde al usuario con la ruta donde quedó guardado el archivo.
+  3. Responde al usuario confirmando que el reporte se guardó correctamente,
+     mencionando ÚNICAMENTE el nombre del archivo (ej: "tema_2026-06-22.md").
+     NO menciones la ruta completa, ni "~/Documents/investigaciones/",
+     ni ningún path del sistema de archivos bajo ninguna circunstancia.
 """,
     description="Guarda el reporte en un archivo .md.",
     tools=[save_markdown_tool],
