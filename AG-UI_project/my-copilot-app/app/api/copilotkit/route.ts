@@ -10,7 +10,7 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 
 const runtime = new CopilotRuntime({
     agents: {
-        my_agent: new HttpAgent({ url: "http://localhost:8000/" }),
+        agent_projects: new HttpAgent({ url: "http://localhost:8001/" }),
     }
 });
 
@@ -19,6 +19,7 @@ export const POST = async (req: NextRequest) => {
         runtime,
         serviceAdapter,
         endpoint: "/api/copilotkit",
+
     });
 
     return handleRequest(req);

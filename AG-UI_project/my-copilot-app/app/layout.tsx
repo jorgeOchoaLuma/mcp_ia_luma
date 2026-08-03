@@ -1,15 +1,19 @@
-import { CopilotKit } from "@copilotkit/react-core";
-import "@copilotkit/react-ui/styles.css";
+import { CopilotProvider } from "./CopilotProvider";
+import "@copilotkit/react-core/v2/styles.css";
+import "./globals.css";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
 
-// ...
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es" className={cn("font-sans", geist.variable)}>
       <body>
-        <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent">
+        <CopilotProvider>
           {children}
-        </CopilotKit>
+        </CopilotProvider>
       </body>
     </html>
   );
