@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ag-ui/client": "^0.0.55",
+    "@ag-ui/client": "^0.0.57",
     "@copilotkit/react-core": "^1.69.0",
     "@copilotkit/react-ui": "^1.69.0",
     "@copilotkit/runtime": "^1.69.0",
@@ -28,5 +28,8 @@
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@ag-ui/client": "^0.0.57"
   }
 }
