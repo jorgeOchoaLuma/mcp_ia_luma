@@ -87,6 +87,16 @@ function Chat() {
   // ── listar_perfiles: componente de datos controlado (L3), clickeable ─────
   useRenderTool({
     name: "listar_perfiles",
+    parameters: z.object({
+      perfiles: z
+        .array(
+          z.object({
+            id: z.string(),
+            nombre: z.string(),
+          })
+        )
+        .describe("Lista de perfiles disponibles para reclutamiento"),
+    }),
     render: ({ status, result }) => (
       <ListaPerfilesCard
         status={status}
@@ -104,21 +114,23 @@ function Chat() {
   });
 
   // ── Resto de tools backend: pasos de proceso, sin exponer args/result ────
+  const processSchema = z.object({}).passthrough();
+
   useRenderTool({
     name: "obtener_requisitos_perfil",
+    parameters: processSchema,
     render: ({ status }) => <ProcessStep toolName="obtener_requisitos_perfil" status={status} />,
   });
   useRenderTool({
     name: "descargar_hojas_de_vida",
+    parameters: processSchema,
     render: ({ status }) => <ProcessStep toolName="descargar_hojas_de_vida" status={status} />,
   });
   useRenderTool({
     name: "analisis_cvs",
+    parameters: processSchema,
     render: ({ status }) => <ProcessStep toolName="analisis_cvs" status={status} />,
   });
-
-  // Red de seguridad: cualquier tool futura sin mapear no muestra nada
-  useRenderTool({ name: "*", render: () => <></> });
 
   return (
     <div className="h-screen flex flex-col">
@@ -139,17 +151,10 @@ function Chat() {
   );
 }
 
-function CustomSendButton({
-  onClick,
-  disabled,
-}: {
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
+function CustomSendButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      onClick={onClick}
-      disabled={disabled}
+      {...props}
       className="bg-[#223b8f] rounded-lg p-2 text-white shadow-md hover:bg-[#223b8f] disabled:bg-indigo-200 disabled:shadow-none"
     >
       <SendHorizontal className="h-5 w-5" />
