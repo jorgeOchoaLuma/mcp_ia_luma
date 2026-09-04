@@ -14,19 +14,18 @@ const AGENT_TIMEOUT_MS = 120_000;
 
 const copilotRuntime = new CopilotRuntime({
     agents: {
-        video_producer: new HttpAgent({ url: `${BACKEND_URL}/video_producer`, timeout: AGENT_TIMEOUT_MS }),
-        transcription: new HttpAgent({ url: `${BACKEND_URL}/transcription`, timeout: AGENT_TIMEOUT_MS }),
-        url_expert: new HttpAgent({ url: `${BACKEND_URL}/url_expert`, timeout: AGENT_TIMEOUT_MS }),
-        soporte: new HttpAgent({ url: `${BACKEND_URL}/soporte`, timeout: AGENT_TIMEOUT_MS }),
-        analisis_hv: new HttpAgent({ url: `${BACKEND_URL}/analisis_hv`, timeout: AGENT_TIMEOUT_MS }),
-        licitaciones: new HttpAgent({ url: `${BACKEND_URL}/licitaciones`, timeout: AGENT_TIMEOUT_MS }),
-        campaign_expert: new HttpAgent({ url: `${BACKEND_URL}/campaign_expert`, timeout: AGENT_TIMEOUT_MS }),
-        investigacion_fuentes: new HttpAgent({ url: `${BACKEND_URL}/investigacion_fuentes`, timeout: AGENT_TIMEOUT_MS }),
-        projects: new HttpAgent({ url: `${BACKEND_URL}/projects`, timeout: AGENT_TIMEOUT_MS }),
-        resumen_reuniones: new HttpAgent({
-            url: `${BACKEND_URL}/resumen_reuniones`,
-            timeout: AGENT_TIMEOUT_MS,
-        }),
+        video_producer: new HttpAgent({ url: `${BACKEND_URL}/video_producer` }) as any,
+        transcription: new HttpAgent({ url: `${BACKEND_URL}/transcription` }) as any,
+        url_expert: new HttpAgent({ url: `${BACKEND_URL}/url_expert` }) as any,
+        soporte: new HttpAgent({ url: `${BACKEND_URL}/soporte` }) as any,
+        analisis_hv: new HttpAgent({ url: `${BACKEND_URL}/analisis_hv` }) as any,
+        licitaciones: new HttpAgent({ url: `${BACKEND_URL}/licitaciones` }) as any,
+        campaign_expert: new HttpAgent({ url: `${BACKEND_URL}/campaign_expert` }) as any,
+        investigacion_fuentes: new HttpAgent({ url: `${BACKEND_URL}/investigacion_fuentes` }) as any,
+        projects: new HttpAgent({ url: `${BACKEND_URL}/projects` }) as any,
+        efemerides: new HttpAgent({ url: `${BACKEND_URL}/efemerides` }) as any,
+        deepsearch: new HttpAgent({ url: `${BACKEND_URL}/deepsearch` }) as any,
+        resumen_reuniones: new HttpAgent({ url: `${BACKEND_URL}/resumen_reuniones` }) as any,
     },
 });
 
