@@ -70,7 +70,7 @@ Si el usuario hace una consulta específica, adapta el flujo para reflejar solo 
 
 # ─── Agente de búsqueda (solo google_search, sin otras tools) ─────────────────
 _search_agent = LlmAgent(
-    model="gemini-3.1-flash-lite",
+    model="gemini-3.7-flash",
     name="deepsearch_search_agent",
     description="Agente encargado ÚNICAMENTE de buscar información en tiempo real en internet.",
     instruction="Eres un buscador web en tiempo real. Utiliza tu herramienta 'google_search' para encontrar información actualizada sobre la consulta y devuelve los hallazgos.",
@@ -79,7 +79,7 @@ _search_agent = LlmAgent(
 
 # ─── Agente principal ─────────────────────────────────────────────────────────
 deep_researcher = LlmAgent(
-    model="gemini-3.1-flash-lite",
+    model="gemini-3.6-flash",
     name="deep_researcher",
     description="Agente principal de investigación de tendencias y creación de contenido.",
     instruction=_COMBINED_INSTRUCTION + "\n\nPara buscar en tiempo real, DEBES usar la tool 'deepsearch_search_agent' para obtener información actualizada.",

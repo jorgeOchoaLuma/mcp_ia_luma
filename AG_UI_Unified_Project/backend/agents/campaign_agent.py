@@ -21,14 +21,14 @@ from google.genai import types
 
 load_dotenv()
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = "gemini-3.7-flash"
 
 # =============================================================================
 # CONFIGURACIÓN BIGQUERY ANALYTICS PLUGIN
 # =============================================================================
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
-BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "marketing_agent_analytics")
-BQ_LOCATION = os.environ.get("BQ_LOCATION", "US")
+BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "agente_analytics_db")
+BQ_LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
 
 bq_analytics_plugin = BigQueryAgentAnalyticsPlugin(
     project_id=PROJECT_ID,
@@ -428,10 +428,9 @@ adk_app = App(
     plugins=[bq_analytics_plugin],
 )
 
-adk_agent = ADKAgent(
-    adk_agent=agent,
-    app_name="app_campana",
+adk_agent = ADKAgent.from_app(
+    adk_app,
     user_id="campana_user",
     session_timeout_seconds=3600,
-    use_in_memory_services=True
+    use_in_memory_services=True,
 )

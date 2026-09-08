@@ -25,7 +25,7 @@ from agents.transcription_agent import adk_agent as transcription_adk
 from agents.transcription_live import register_transcription_live_ws
 from agents.url_context_agent import adk_agent as url_adk
 from agents.licitaciones_agent import agent as licitaciones_agent
-from agents.campaign_agent import agent as campaign_agent
+from agents.campaign_agent import adk_agent as campaign_adk
 from agents.investigacion_agent import adk_agent as investigacion_adk
 from agents.resumen_reuniones_agent import adk_agent as resumen_reuniones_adk
 from agents.soporte_agent import adk_agent as soporte_adk
@@ -53,16 +53,20 @@ agents = {
     "analisis_hv": analisis_hv_adk,
     "efemerides": efemerides_adk,
     "deepsearch": deepsearch_adk,
-    # Agentes LlmAgent simples
-    "transcription": transcription_adk,
-    "licitaciones": ADKAgent(adk_agent=licitaciones_agent, app_name="licitaciones_app"),
-    "campaign_expert": ADKAgent(adk_agent=campaign_agent, app_name="campaign_app"),
+    "campaign_expert": campaign_adk,
     "investigacion_fuentes": investigacion_adk,
     "projects": projects_full_adk,
+    "transcription": transcription_adk,
+    # Agentes LlmAgent simples
+    "licitaciones": ADKAgent(adk_agent=licitaciones_agent, app_name="licitaciones_app"),
 }
+
+from agents.video_agent import get_generated_image
 
 for agent_id, adk_wrapper in agents.items():
     add_adk_fastapi_endpoint(app, adk_wrapper, path=f"/{agent_id}")
+
+app.get("/images/{image_id}.png")(get_generated_image)
 
 register_transcription_live_ws(app)
 

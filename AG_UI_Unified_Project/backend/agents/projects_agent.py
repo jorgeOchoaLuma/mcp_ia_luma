@@ -39,9 +39,9 @@ PORTAL_ID = "854075653"
 ZOHO_BASE_URL = f"https://projectsapi.zoho.com/api/v3/portal/{PORTAL_ID}"
 ZOHO_ACCOUNTS_URL = "https://accounts.zoho.com"
 
-ZOHO_REFRESH_TOKEN = os.environ.get("ZOHO_REFRESH_TOKEN", "")
-ZOHO_CLIENT_ID     = os.environ.get("ZOHO_CLIENT_ID", "")
-ZOHO_CLIENT_SECRET = os.environ.get("ZOHO_CLIENT_SECRET", "")
+ZOHO_REFRESH_TOKEN = os.environ.get("ZOHO_PROJECTS_REFRESH_TOKEN") or os.environ.get("ZOHO_REFRESH_TOKEN", "")
+ZOHO_CLIENT_ID     = os.environ.get("ZOHO_PROJECTS_CLIENT_ID") or os.environ.get("ZOHO_CLIENT_ID", "")
+ZOHO_CLIENT_SECRET = os.environ.get("ZOHO_PROJECTS_CLIENT_SECRET") or os.environ.get("ZOHO_CLIENT_SECRET", "")
 
 # ─── Config BQ ────────────────────────────────────────────────────────────────
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
@@ -173,7 +173,7 @@ def _log_zoho_response(
 # ─── LLM Agent ────────────────────────────────────────────────────────────────
 
 _agent = LlmAgent(
-    model="gemini-3.1-flash-lite",
+    model="gemini-3.7-flash",
     name="agent_projects",
     description="Asistente que gestiona proyectos y tareas en Zoho Projects",
     instruction=f"""

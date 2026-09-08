@@ -1,103 +1,127 @@
 """
 Herramientas de soporte para el agente de análisis de CVs.
+Usa ADK Artifacts con GcsArtifactService para pasar PDFs al modelo de forma nativa.
 """
 import os
 import json
-import base64
 from pathlib import Path
 from typing import Optional
-import time
+
+import google.genai.types as types
+from google.adk.tools.tool_context import ToolContext
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 
+MIME_MAP = {
+    ".pdf":  "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc":  "application/msword",
+}
 
-def leer_cv_como_bytes(ruta_carpeta: str, nombre_archivo: Optional[str] = None) -> dict:
+
+async def cargar_cvs_como_artefactos(
+    tool_context: ToolContext,
+    ruta_carpeta: str,
+) -> dict:
     """
-    Lee uno o todos los CVs de una carpeta y los devuelve como bytes en base64
-    para que el agente pueda analizarlos directamente con visión multimodal.
-
-    Llámala primero SIN nombre_archivo para listar qué archivos hay.
-    Luego llámala CON nombre_archivo para leer cada uno.
+    Lee todos los CVs de la carpeta y los guarda como ADK Artifacts en GCS.
+    Llama esta función UNA SOLA VEZ al inicio del análisis.
+    Los artefactos quedan persistidos en GCS y disponibles para que el modelo
+    los lea directamente con sus capacidades multimodales nativas.
 
     Args:
         ruta_carpeta: Ruta absoluta de la carpeta con los CVs descargados.
-        nombre_archivo: Nombre de un archivo específico a leer. Si es None,
-                        devuelve solo la lista de archivos disponibles.
+                      Usar el valor de 'ruta' retornado por descargar_hojas_de_vida.
 
     Returns:
-        Si nombre_archivo es None: dict con lista de archivos disponibles.
-        Si nombre_archivo tiene valor: dict con contenido en base64 y mime_type.
+        dict con lista de artefactos registrados en GCS y nombres de archivo.
     """
-    # Pequeña pausa defensiva para no saturar RPM de Vertex AI
-    if nombre_archivo is not None:
-        time.sleep(1.5)
-                   
     carpeta = Path(ruta_carpeta)
-
     if not carpeta.exists():
-        return {"error": f"Carpeta no encontrada: {ruta_carpeta}", "archivos": []}
+        return {"error": f"Carpeta no encontrada: {ruta_carpeta}", "artefactos": []}
 
-    archivos_disponibles = [
-        f.name for f in sorted(carpeta.iterdir())
+    archivos = [
+        f for f in sorted(carpeta.iterdir())
         if f.suffix.lower() in SUPPORTED_EXTENSIONS
     ]
 
-    if not archivos_disponibles:
-        return {"error": "No hay archivos PDF/DOCX en la carpeta.", "archivos": []}
+    if not archivos:
+        return {"error": "No hay archivos PDF/DOCX en la carpeta.", "artefactos": []}
 
-    # Solo listar
-    if nombre_archivo is None:
-        return {
-            "archivos": archivos_disponibles,
-            "total": len(archivos_disponibles),
-            "ruta_carpeta": str(carpeta.resolve()),
-            "instruccion": "Llama esta función de nuevo con cada nombre_archivo para leer el contenido.",
-        }
+    artefactos_guardados = []
 
-    # Leer archivo específico
-    archivo = carpeta / nombre_archivo
-    if not archivo.exists():
-        return {"error": f"Archivo no encontrado: {nombre_archivo}"}
+    for archivo in archivos:
+        mime_type = MIME_MAP.get(archivo.suffix.lower(), "application/octet-stream")
+        try:
+            with open(archivo, "rb") as f:
+                contenido = f.read()
 
-    suffix = archivo.suffix.lower()
-    mime_map = {
-        ".pdf": "application/pdf",
-        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".doc": "application/msword",
-    }
+            parte = types.Part(
+                inline_data=types.Blob(
+                    data=contenido,
+                    mime_type=mime_type,
+                )
+            )
 
-    with open(archivo, "rb") as f:
-        contenido_b64 = base64.b64encode(f.read()).decode()
+            # Guardar en GCS vía ADK ArtifactService
+            version = await tool_context.save_artifact(
+                filename=archivo.name,
+                artifact=parte,
+            )
+
+            artefactos_guardados.append({
+                "nombre_archivo": archivo.name,
+                "mime_type": mime_type,
+                "version": version,
+                "bytes": len(contenido),
+            })
+            print(f"[ARTIFACT] Guardado en GCS: {archivo.name} (v{version}, {len(contenido)} bytes)")
+
+        except Exception as e:
+            print(f"[ARTIFACT ERROR] {archivo.name}: {e}")
+            artefactos_guardados.append({
+                "nombre_archivo": archivo.name,
+                "error": str(e),
+            })
+
+    exitosos = [a for a in artefactos_guardados if "error" not in a]
 
     return {
-        "nombre_archivo": nombre_archivo,
-        "mime_type": mime_map.get(suffix, "application/octet-stream"),
-        "contenido_base64": contenido_b64,
+        "ruta_carpeta": str(carpeta.resolve()),
+        "artefactos": artefactos_guardados,
+        "total": len(artefactos_guardados),
+        "exitosos": len(exitosos),
         "instruccion": (
-            "Analiza este documento usando tus capacidades multimodales. "
-            "Evalúa el CV y asigna puntaje 0-100 con justificación."
+            f"{len(exitosos)} CVs guardados como artefactos en GCS. "
+            "Usa load_artifacts con cada nombre_archivo para cargar y leer "
+            "el contenido REAL de cada CV. "
+            "SOLO evalúa lo que está escrito en el documento — "
+            "NUNCA inventes ni asumas información que no aparezca explícitamente."
         ),
     }
 
 
-def guardar_ranking(
+async def guardar_ranking(
+    tool_context: ToolContext,
     ruta_carpeta: str,
     ranking: list[dict],
 ) -> dict:
     """
-    Persiste el ranking de candidatos como JSON en la carpeta de descarga.
+    Persiste el ranking de candidatos como JSON en disco y como artefacto en GCS.
+    Llámala DESPUÉS de haber analizado todos los CVs y construido el ranking completo.
 
     Args:
-        ruta_carpeta: Misma ruta usada en leer_cv_como_bytes.
+        ruta_carpeta: Misma ruta usada en cargar_cvs_como_artefactos.
         ranking: Lista de dicts ordenada por puntaje descendente. Cada dict debe tener:
                  - nombre_candidato (str)
                  - archivo (str)
                  - puntaje (int, 0-100)
-                 - requisitos_evaluados (list[dict]): cada uno con
+                 - requisitos_evaluados (list[dict]): cada uno con:
                    {"requisito": str, "cumple": bool, "evidencia": str}
-                   El campo 'evidencia' debe ser una cita textual del CV o
+                   donde evidencia es cita textual del CV o
                    "Sin evidencia en el documento" si no cumple.
                  - resumen (str)
+                 - email (str, opcional)
 
     Returns:
         dict con ruta del archivo guardado y confirmación.
@@ -105,19 +129,33 @@ def guardar_ranking(
     carpeta = Path(ruta_carpeta)
     carpeta.mkdir(parents=True, exist_ok=True)
 
+    ranking_data = {"ranking": ranking, "total": len(ranking)}
+
+    # Guardar como JSON en disco local
     output_path = carpeta / "ranking_candidatos.json"
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(
-            {"ranking": ranking, "total": len(ranking)},
-            f,
-            ensure_ascii=False,
-            indent=2,
+        json.dump(ranking_data, f, ensure_ascii=False, indent=2)
+
+    # Guardar también como artefacto en GCS
+    try:
+        json_bytes = json.dumps(ranking_data, ensure_ascii=False, indent=2).encode("utf-8")
+        parte_json = types.Part(
+            inline_data=types.Blob(
+                data=json_bytes,
+                mime_type="application/json",
+            )
         )
+        version = await tool_context.save_artifact(
+            filename="ranking_candidatos.json",
+            artifact=parte_json,
+        )
+        print(f"[ARTIFACT] Ranking guardado en GCS como artefacto (v{version})")
+    except Exception as e:
+        print(f"[ARTIFACT ERROR] No se pudo guardar ranking en GCS: {e}")
 
     return {
         "guardado_en": str(output_path.resolve()),
         "total_candidatos": len(ranking),
         "top_candidato": ranking[0].get("nombre_candidato") if ranking else None,
-        "mensaje": f"✅ Ranking de {len(ranking)} candidatos guardado.",
+        "mensaje": f"✅ Ranking de {len(ranking)} candidatos guardado en disco y GCS.",
     }
-

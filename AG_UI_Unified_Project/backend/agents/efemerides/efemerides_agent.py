@@ -135,7 +135,7 @@ _search_agent = Agent(
 
 _root_agent = Agent(
     name="efemerides_agent",
-    model="gemini-3.1-flash-lite",
+    model="gemini-3.7-flash",
     description="Agente especializado en buscar efemérides de cualquier tema.",
     instruction=(
         "Para cualquier pedido de efemérides, llama a la tool `efemerides_search_agent` "
@@ -166,10 +166,8 @@ _app_adk = App(
     plugins=[_bq_plugin],
 )
 
-# ─── 8. ADKAgent exportado ────────────────────────────────────────────────────
-adk_agent = ADKAgent(
-    adk_agent=_root_agent,
-    app_name="efemerides_app",
+adk_agent = ADKAgent.from_app(
+    _app_adk,
     user_id="user_efemerides",
     session_timeout_seconds=3600,
     use_in_memory_services=True,
