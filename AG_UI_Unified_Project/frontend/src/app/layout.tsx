@@ -1,4 +1,5 @@
 import { AgentProvider } from "./agent-provider";
+import "@copilotkit/react-core/v2/styles.css";
 import "@copilotkit/react-ui/styles.css";
 import "./globals.css";
 

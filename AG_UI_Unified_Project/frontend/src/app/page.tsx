@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useCopilotChat } from "@copilotkit/react-core";
-import { CopilotSidebar } from "@copilotkit/react-ui";
+import { CopilotChat, useAgent } from "@copilotkit/react-core/v2";
 import { useSelectedAgent } from "./agent-provider";
-import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
 import {
   Mic,
   MicOff,
@@ -22,6 +20,9 @@ import {
   Calendar,
   Sparkles,
   Layers,
+  MessageSquare,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { useAgentGenerativeUI } from "@/hooks/useAgentGenerativeUI";
 import Dashboard from "@/components/deepsearch/Dashboard";
@@ -48,10 +49,10 @@ const AGENTS = [
   { id: "licitaciones", name: "Licitaciones", icon: Gavel, category: "Legal", source: "—" },
 ];
 
-function UploadButton() {
+function UploadButton({ agentId }: { agentId: string }) {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState<string | null>(null);
-  const { appendMessage } = useCopilotChat();
+  const { agent } = useAgent({ agentId });
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,12 +68,14 @@ function UploadButton() {
       if (data.error) throw new Error(data.error);
 
       setUploaded(file.name);
-      appendMessage(
-        new TextMessage({
-          role: Role.User,
+      if (agent) {
+        agent.addMessage({
+          id: crypto.randomUUID(),
+          role: "user",
           content: `Genera un resumen completo de la reunión del archivo "${file.name}".\n\n[METADATA:uri=${data.url},mime=${data.mimeType || file.type}]`,
-        })
-      );
+        });
+        await agent.runAgent();
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       alert("Error al subir: " + message);
@@ -110,8 +113,8 @@ function UploadButton() {
   );
 }
 
-function MicButton() {
-  const { appendMessage } = useCopilotChat();
+function MicButton({ agentId }: { agentId: string }) {
+  const { agent } = useAgent({ agentId });
   const [isRecording, setIsRecording] = useState(false);
   const [supported, setSupported] = useState(true);
   const [liveText, setLiveText] = useState("");
@@ -120,9 +123,16 @@ function MicButton() {
 
   const sendToAgent = useCallback(
     (text: string) => {
-      appendMessage(new TextMessage({ content: text, role: Role.User }));
+      if (agent) {
+        agent.addMessage({
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text,
+        });
+        agent.runAgent();
+      }
     },
-    [appendMessage]
+    [agent]
   );
 
   useEffect(() => {
@@ -192,7 +202,7 @@ function MicButton() {
       }
     };
 
-    recognition.recognition = recognition;
+    recognitionRef.current = recognition;
   }, [sendToAgent]);
 
   const toggle = () => {
@@ -250,8 +260,9 @@ function MicButton() {
 export default function Page() {
   const { agent: selectedAgent, setAgent: setSelectedAgent } = useSelectedAgent();
   const active = AGENTS.find((a) => a.id === selectedAgent);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Activación de hooks Generative UI para todos los agentes
+  // Activación de componentes y tools de Generative UI para el agente activo
   useAgentGenerativeUI(selectedAgent);
 
   return (
@@ -267,7 +278,7 @@ export default function Page() {
               <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
                 Panel Unificado de Agentes Luma
                 <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-500/30">
-                  Gen UI
+                  Gen UI v2
                 </span>
               </h1>
               <p className="text-xs text-gray-400">
@@ -276,52 +287,8 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-2xl no-scrollbar">
-            {AGENTS.map((agent) => {
-              const isSelected = selectedAgent === agent.id;
-              const Icon = agent.icon;
-              return (
-                <button
-                  key={agent.id}
-                  type="button"
-                  onClick={() => setSelectedAgent(agent.id)}
-                  title={`${agent.name} — ${agent.source}`}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                    isSelected
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                      : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{agent.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      {/* Contenido Principal */}
-      <div className="flex-1">
-        {selectedAgent === "deepsearch" ? (
-          /* Vista Dashboard Completo para Deep Research */
-          <div className="h-[calc(100vh-65px)]">
-            <Dashboard />
-          </div>
-        ) : (
-          /* Vista General para los demás agentes */
-          <main className="max-w-6xl mx-auto p-6 md:p-8">
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                {active?.name}
-              </h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Servicio backend conectado: <code className="text-indigo-300 bg-gray-800 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → :{selectedAgent}</code>
-              </p>
-            </div>
-
-            {/* Grid de selección de agentes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-2xl no-scrollbar">
               {AGENTS.map((agent) => {
                 const isSelected = selectedAgent === agent.id;
                 const Icon = agent.icon;
@@ -330,81 +297,171 @@ export default function Page() {
                     key={agent.id}
                     type="button"
                     onClick={() => setSelectedAgent(agent.id)}
-                    className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden group ${
+                    title={`${agent.name} — ${agent.source}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
                       isSelected
-                        ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
-                        : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800/50"
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                        : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 group-hover:text-white"}`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-gray-800/70 text-gray-400 border border-gray-700/50">
-                        {agent.category}
-                      </span>
-                    </div>
-                    <p className="font-semibold text-sm text-gray-100 mb-1">{agent.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{agent.id}</p>
-                    <p className="text-[11px] text-gray-400 mt-2 truncate">← {agent.source}</p>
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{agent.name}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Card de información del agente activo */}
-            <div className="bg-gray-900/70 rounded-2xl p-6 border border-gray-800 shadow-xl">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <h3 className="text-lg font-bold text-gray-200">Capacidades del Agente</h3>
+            {selectedAgent !== "deepsearch" && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className={`p-2 rounded-lg border transition-all ${
+                  sidebarOpen
+                    ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
+                    : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
+                }`}
+                title={sidebarOpen ? "Ocultar panel de chat" : "Mostrar panel de chat"}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Contenido Principal */}
+      <div className="flex-1 flex overflow-hidden">
+        {selectedAgent === "deepsearch" ? (
+          /* Vista Dashboard Completo para Deep Research */
+          <div className="w-full h-[calc(100vh-65px)]">
+            <Dashboard />
+          </div>
+        ) : (
+          /* Vista de los demás agentes con panel de chat v2 integrado */
+          <>
+            <main className="flex-1 overflow-y-auto p-6 md:p-8">
+              <div className="max-w-4xl mx-auto">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                    {active?.name}
+                  </h2>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Servicio backend conectado: <code className="text-indigo-300 bg-gray-800 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → /{selectedAgent}</code>
+                  </p>
+                </div>
+
+                {/* Grid de selección de agentes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                  {AGENTS.map((agent) => {
+                    const isSelected = selectedAgent === agent.id;
+                    const Icon = agent.icon;
+                    return (
+                      <button
+                        key={agent.id}
+                        type="button"
+                        onClick={() => setSelectedAgent(agent.id)}
+                        className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden group ${
+                          isSelected
+                            ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
+                            : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800/50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 group-hover:text-white"}`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-gray-800/70 text-gray-400 border border-gray-700/50">
+                            {agent.category}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-sm text-gray-100 mb-1">{agent.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{agent.id}</p>
+                        <p className="text-[11px] text-gray-400 mt-2 truncate">← {agent.source}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Card de información del agente activo */}
+                <div className="bg-gray-900/70 rounded-2xl p-6 border border-gray-800 shadow-xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <h3 className="text-lg font-bold text-gray-200">Capacidades del Agente</h3>
+                  </div>
+                  <div className="text-gray-400 text-sm leading-relaxed space-y-2">
+                    {selectedAgent === "video_producer" && (
+                      <p>Genera guiones y ayudas visuales interactivas. Incluye selector de relación de aspecto, estilo visual y renderizado de galería de imágenes mediante Gen UI.</p>
+                    )}
+                    {selectedAgent === "projects" && (
+                      <p>Conexión directa con Zoho Projects mediante MCP. Permite crear proyectos, listas y tareas con Human-in-the-Loop para seleccionar grupos y plantillas dinámicamente.</p>
+                    )}
+                    {selectedAgent === "efemerides" && (
+                      <p>Búsqueda inteligente de fechas y conmemoraciones nacionales, internacionales e industriales, presentadas en tarjetas temáticas clasificadas por categoría.</p>
+                    )}
+                    {selectedAgent === "analisis_hv" && (
+                      <p>Conecta con Zoho Recruit para listar vacantes abiertas, descargar currículums y generar el ranking interactivo de candidatos con evidencia documental detallada.</p>
+                    )}
+                    {selectedAgent === "resumen_reuniones" && (
+                      <p>Genera minutas estructuradas a partir de audios o videos. Utiliza el botón 📎 flotante para subir archivos a Google Cloud Storage.</p>
+                    )}
+                    {selectedAgent === "transcription" && (
+                      <p>Transcripción de voz en tiempo real. Usa el micrófono flotante y di <em>"guardar"</em> al finalizar para persistir en BigQuery.</p>
+                    )}
+                    {selectedAgent === "url_expert" && (
+                      <p>Consulta y contextualización en vivo sobre el sitio web y servicios de Luma Cloud.</p>
+                    )}
+                    {selectedAgent === "soporte" && (
+                      <p>Asistencia técnica y resolución de incidencias de primer nivel para usuarios de Luma.</p>
+                    )}
+                    {selectedAgent === "campaign_expert" && (
+                      <p>Planificación, estrategia y generación de copys para campañas comerciales y publicitarias.</p>
+                    )}
+                    {selectedAgent === "investigacion_fuentes" && (
+                      <p>Búsqueda y contrastación de datos a través de múltiples fuentes de información confiables.</p>
+                    )}
+                    {selectedAgent === "licitaciones" && (
+                      <p>Análisis de pliegos y requerimientos para procesos licitatorios y compras públicas.</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="text-gray-400 text-sm leading-relaxed space-y-2">
-                {selectedAgent === "video_producer" && (
-                  <p>Genera guiones y ayudas visuales interactivas. Incluye selector de relación de aspecto, estilo visual y renderizado de galería de imágenes mediante Gen UI.</p>
-                )}
-                {selectedAgent === "projects" && (
-                  <p>Conexión directa con Zoho Projects mediante MCP. Permite crear proyectos, listas y tareas con Human-in-the-Loop para seleccionar grupos y plantillas dinámicamente.</p>
-                )}
-                {selectedAgent === "efemerides" && (
-                  <p>Búsqueda inteligente de fechas y conmemoraciones nacionales, internacionales e industriales, presentadas en tarjetas temáticas clasificadas por categoría.</p>
-                )}
-                {selectedAgent === "analisis_hv" && (
-                  <p>Conecta con Zoho Recruit para listar vacantes abiertas, descargar currículums y generar el ranking interactivo de candidatos con evidencia documental detallada.</p>
-                )}
-                {selectedAgent === "resumen_reuniones" && (
-                  <p>Genera minutas estructuradas a partir de audios o videos. Utiliza el botón 📎 flotante para subir archivos a Google Cloud Storage.</p>
-                )}
-                {selectedAgent === "transcription" && (
-                  <p>Transcripción de voz en tiempo real. Usa el micrófono flotante y di <em>"guardar"</em> al finalizar para persistir en BigQuery.</p>
-                )}
-                {selectedAgent === "url_expert" && (
-                  <p>Consulta y contextualización en vivo sobre el sitio web y servicios de Luma Cloud.</p>
-                )}
-                {selectedAgent === "soporte" && (
-                  <p>Asistencia técnica y resolución de incidencias de primer nivel para usuarios de Luma.</p>
-                )}
-                {selectedAgent === "campaign_expert" && (
-                  <p>Planificación, estrategia y generación de copys para campañas comerciales y publicitarias.</p>
-                )}
-                {selectedAgent === "investigacion_fuentes" && (
-                  <p>Búsqueda y contrastación de datos a través de múltiples fuentes de información confiables.</p>
-                )}
-                {selectedAgent === "licitaciones" && (
-                  <p>Análisis de pliegos y requerimientos para procesos licitatorios y compras públicas.</p>
-                )}
-              </div>
-            </div>
-          </main>
+            </main>
+
+            {/* Panel Lateral de Chat con CopilotChat de Gen UI v2 */}
+            {sidebarOpen && (
+              <aside className="w-[440px] shrink-0 border-l border-gray-800 bg-gray-900 flex flex-col h-[calc(100vh-65px)]">
+                <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/90">
+                  <div className="flex items-center gap-2">
+                    {active && <active.icon className="w-4 h-4 text-blue-400" />}
+                    <span className="font-semibold text-sm text-gray-200">{active?.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                    title="Cerrar panel"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto bg-gray-950/40 p-2">
+                  <CopilotChat
+                    agentId={selectedAgent}
+                    key={selectedAgent}
+                    labels={{
+                      welcomeMessageText: `Hola, soy tu asistente para ${active?.name}. ¿En qué te puedo colaborar hoy?`,
+                      chatInputPlaceholder: "Escribe tu instrucción o mensaje...",
+                    }}
+                  />
+                </div>
+              </aside>
+            )}
+          </>
         )}
       </div>
 
-      {/* Sidebar de CopilotKit para los agentes regulares */}
-      {selectedAgent !== "deepsearch" && (
-        <CopilotSidebar defaultOpen />
-      )}
-
-      {selectedAgent === "resumen_reuniones" && <UploadButton />}
-      {selectedAgent === "transcription" && <MicButton />}
+      {selectedAgent === "resumen_reuniones" && <UploadButton agentId={selectedAgent} />}
+      {selectedAgent === "transcription" && <MicButton agentId={selectedAgent} />}
     </div>
   );
 }
