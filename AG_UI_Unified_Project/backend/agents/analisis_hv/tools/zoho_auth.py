@@ -28,9 +28,9 @@ def get_access_token() -> str:
         "https://accounts.zoho.com/oauth/v2/token",
         params={
             "grant_type": "refresh_token",
-            "refresh_token": os.getenv("ZOHO_REFRESH_TOKEN"),
-            "client_id": os.getenv("ZOHO_CLIENT_ID"),
-            "client_secret": os.getenv("ZOHO_CLIENT_SECRET"),
+            "refresh_token": os.getenv("ZOHO_RECRUIT_REFRESH_TOKEN") or os.getenv("ZOHO_REFRESH_TOKEN"),
+            "client_id": os.getenv("ZOHO_RECRUIT_CLIENT_ID") or os.getenv("ZOHO_CLIENT_ID"),
+            "client_secret": os.getenv("ZOHO_RECRUIT_CLIENT_SECRET") or os.getenv("ZOHO_CLIENT_SECRET"),
         },
     )
     res.raise_for_status()

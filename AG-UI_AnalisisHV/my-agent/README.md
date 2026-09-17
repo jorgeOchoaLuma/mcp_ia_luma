@@ -61,27 +61,24 @@ uv add ag-ui-adk google-adk uvicorn  fastapi google-cloud-bigquery google-cloud-
 
 
 # Configurar API Key
-# ── Zoho OAuth (Recruit + Sheet comparten el mismo client) ──────────────────
-ZOHO_CLIENT_ID=1000.M042TI1FTQFVM2BQQZYJ9UIQ77W0VW
-ZOHO_CLIENT_SECRET=91c9a10718d192fc55b695b751c82d5c74efa211cd
-ZOHO_REFRESH_TOKEN=1000.e8e02627186e54e871781e671b0f4ba5.9a9e6e2d1b43097d622944d298b00aeb
+# ── Zoho OAuth (Recruit) estos datos en en Vault de zoho
+ZOHO_CLIENT_ID=
+ZOHO_CLIENT_SECRET=
+ZOHO_REFRESH_TOKEN=
  
 GOOGLE_GENAI_USE_VERTEXAI=TRUE
 
-GOOGLE_CLOUD_PROJECT=zippy-sublime-488620-q2
+GOOGLE_CLOUD_PROJECT=lciprod
 GOOGLE_CLOUD_LOCATION=global
 
 
 BQ_DATASET_ID=agente_analytics_db
 BQ_LOCATION=us-central1
-
+GCS_BUCKET_NAME=reclutamiento_perfiles
  
 # ── Configuración de descarga ────────────────────────────────────────────────
 DOWNLOAD_BASE_PATH=./cvs_descargados
  
-# ── Zoho Sheet: ID del workbook donde se guardan los rankings ────────────────
-# Obtener del URL: sheet.zoho.com/sheet/open/<ZOHO_SHEET_WORKBOOK_ID>/...
-ZOHO_SHEET_WORKBOOK_ID=1ehc1fd74395f70704a83afec66ebb671aed2
 
 # Ejecutar
 uv run main.py
@@ -97,7 +94,8 @@ cd my-copilot-app
 
 # Instalar CopilotKit
 
-npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client
+npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client zod
+
 
 # Copiar archivos frontend en sus ubicaciones
 # Ejecutar

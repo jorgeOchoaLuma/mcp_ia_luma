@@ -1,5 +1,6 @@
-# Backend AG-UI (FastAPI). Coolify: recurso Docker Compose con base path AG_UI_Unified_Project
-# o ajusta en Coolify la ruta a este archivo.
+# AG_UI_Unified_Project — Backend + Frontend unificados
+# Rama: migracion_unificado
+# Coolify: recurso Docker Compose con base path AG_UI_Unified_Project
 
 services:
   backend:
@@ -27,6 +28,7 @@ services:
       ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET:-}
       ZOHO_SHEET_WORKBOOK_ID: ${ZOHO_SHEET_WORKBOOK_ID:-}
       DOWNLOAD_BASE_PATH: ${DOWNLOAD_BASE_PATH:-./cvs_descargados}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:8000}
     healthcheck:
       test:
         [
@@ -37,3 +39,20 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PUBLISH_PORT:-3000}:3000"
+    environment:
+      # URL interna del backend (dentro de la red Docker)
+      BACKEND_URL: http://backend:${BACKEND_PORT:-8000}
+      # Variables para GCS (subida de archivos desde el frontend)
+      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ${GOOGLE_APPLICATION_CREDENTIALS_BASE64:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GCS_BUCKET_RESUMEN: ${GCS_BUCKET_RESUMEN:-resumen-reuniones}
+    depends_on:
+      backend:
+        condition: service_healthy

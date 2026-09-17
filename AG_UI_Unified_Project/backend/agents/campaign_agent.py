@@ -21,14 +21,14 @@ from google.genai import types
 
 load_dotenv()
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = "gemini-3.7-flash"
 
 # =============================================================================
 # CONFIGURACIÓN BIGQUERY ANALYTICS PLUGIN
 # =============================================================================
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
-BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "marketing_agent_analytics")
-BQ_LOCATION = os.environ.get("BQ_LOCATION", "US")
+BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "agente_analytics_db")
+BQ_LOCATION = os.environ.get("BQ_LOCATION", "us-central1")
 
 bq_analytics_plugin = BigQueryAgentAnalyticsPlugin(
     project_id=PROJECT_ID,
@@ -155,10 +155,10 @@ def save_to_markdown(
 
     try:
         file_path.write_text(md_content, encoding="utf-8")
-        print(f"✅ Archivo guardado: {file_path}")
+        #print(f"✅ Archivo guardado: {file_path}")
         return (
             f"✅ Archivo guardado exitosamente.\n"
-            f"📁 Ruta: {file_path}\n"
+            #f"📁 Ruta: {file_path}\n"
             f"📄 Nombre: {filename}"
         )
     except Exception as e:
@@ -388,7 +388,14 @@ save_agent = LlmAgent(
     - ad_content: {ad_content}
     - measurement_plan: {measurement_plan}
 
-    Llama a la herramienta UNA SOLA VEZ y confirma al usuario el resultado con la ruta del archivo.
+    Llama a la herramienta UNA SOLA VEZ. Luego confirma al usuario únicamente con el
+    nombre del archivo guardado (campo "Nombre" del resultado de la herramienta).
+
+    REGLAS ESTRICTAS:
+    - NUNCA menciones, repitas ni construyas la ruta completa del sistema de archivos
+      (rutas como /root/..., C:\\..., Documents/resultados_campanas/, etc.).
+    - No inventes ni infieras dónde se guardó el archivo más allá del nombre.
+    - Tu respuesta debe ser breve, ej: "✅ Archivo guardado: Acronis_Cyber_Protect_Cloud_2026-06-22.md"
     No generes contenido adicional.
     """,
     description="Guarda todos los resultados de la campaña en un archivo .md.",
@@ -421,10 +428,9 @@ adk_app = App(
     plugins=[bq_analytics_plugin],
 )
 
-adk_agent = ADKAgent(
-    adk_agent=agent,
-    app_name="app_campana",
+adk_agent = ADKAgent.from_app(
+    adk_app,
     user_id="campana_user",
     session_timeout_seconds=3600,
-    use_in_memory_services=True
+    use_in_memory_services=True,
 )

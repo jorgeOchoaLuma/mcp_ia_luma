@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+
+/* globals.css */
+[data-testid="copilot-send-button"] {
+  background-color: #4f46e5 !important;
+  border-radius: 9999px !important;
+}
+
+[data-testid="copilot-send-button"]:hover:not(:disabled) {
+  background-color: #4338ca !important;
+}
+
+/* Para que no se vea gris cuando está disabled */
+[data-testid="copilot-send-button"]:disabled {
+  background-color: #a5b4fc !important;
+}
+
+/* Quita el fondo negro del contenedor de mensajes del usuario de CopilotKit */
+.copilotKitMessage.copilotKitUserMessage {
+  background-color: transparent !important;
+}

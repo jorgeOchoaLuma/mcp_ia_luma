@@ -65,12 +65,12 @@ GOOGLE_GENAI_USE_VERTEXAI=TRUE
 # También es recomendable definir la región y el ID del proyecto
 GOOGLE_CLOUD_PROJECT=
 GOOGLE_CLOUD_LOCATION=global
-#Créalo en: https://console.cloud.google.com/ai/discovery/data-stores
-DATASTORE_ID=rag-layout_1779741553105
-GCS_BUCKET_NAME=bucket_data1
-
 BQ_DATASET_ID=agente_analytics_db
 BQ_LOCATION=us-central1
+IMAGE_MODEL_ID=gemini-3.1-flash-image
+EVAL_MODEL_ID=gemini-3.1-flash-image
+
+GCS_BUCKET_NAME=ayudas-visuales_dev
 
 # Ejecutar
 uv run main.py
@@ -86,7 +86,8 @@ cd my-copilot-app
 
 # Instalar CopilotKit
 
-npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client
+npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client zod
+npm install lucide-react
 
 # Copiar archivos frontend en sus ubicaciones
 # Ejecutar

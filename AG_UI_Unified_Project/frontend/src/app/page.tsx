@@ -19,7 +19,12 @@ import {
   Paperclip,
   LifeBuoy,
   Briefcase,
+  Calendar,
+  Sparkles,
+  Layers,
 } from "lucide-react";
+import { useAgentGenerativeUI } from "@/hooks/useAgentGenerativeUI";
+import Dashboard from "@/components/deepsearch/Dashboard";
 
 const SAVE_KEYWORDS = ["ya terminé", "guarda", "guardar", "fin", "terminar", "save", "done"];
 
@@ -29,16 +34,18 @@ function isSaveKeyword(text: string): boolean {
 }
 
 const AGENTS = [
-  { id: "video_producer", name: "Productor de Video", icon: Video, source: "AG_UI_agent_asistentente_video" },
-  { id: "url_expert", name: "Experto Luma (Web)", icon: Globe, source: "AG_UI_agente_url_contexto_luma" },
-  { id: "soporte", name: "Soporte Luma", icon: LifeBuoy, source: "AG-UI_Agente_soporte" },
-  { id: "analisis_hv", name: "Análisis HV / Reclutamiento", icon: Briefcase, source: "AG-UI_AnalisisHV" },
-  { id: "campaign_expert", name: "Experto en Campañas", icon: Megaphone, source: "AU_UI_Agente_campana" },
-  { id: "resumen_reuniones", name: "Resumen de Reuniones", icon: Users, source: "AG_UI_agente_resumen_reuniones" },
-  { id: "projects", name: "Proyectos Zoho", icon: FolderKanban, source: "AG-UI_project" },
-  { id: "transcription", name: "Transcripción", icon: FileText, source: "AG_UI_agent_transcripción / bigquery" },
-  { id: "licitaciones", name: "Licitaciones", icon: Gavel, source: "—" },
-  { id: "investigacion_fuentes", name: "Investigación de Fuentes", icon: Search, source: "AG-UI_investigacion_fuentes" },
+  { id: "video_producer", name: "Productor de Video", icon: Video, category: "Creativo", source: "AG_UI_agent_asistentente_video" },
+  { id: "projects", name: "Proyectos Zoho", icon: FolderKanban, category: "Gestión", source: "AG-UI_project" },
+  { id: "efemerides", name: "Efemérides", icon: Calendar, category: "Contenido", source: "AG_UI_efemerides" },
+  { id: "deepsearch", name: "Deep Research & Content", icon: Sparkles, category: "Investigación", source: "AG-UI_deepsearch_recomendacioens" },
+  { id: "analisis_hv", name: "Análisis HV / Reclutamiento", icon: Briefcase, category: "RRHH", source: "AG-UI_AnalisisHV" },
+  { id: "resumen_reuniones", name: "Resumen de Reuniones", icon: Users, category: "Productividad", source: "AG_UI_agente_resumen_reuniones" },
+  { id: "transcription", name: "Transcripción", icon: FileText, category: "Voz", source: "AG_UI_agent_transcripción / bigquery" },
+  { id: "url_expert", name: "Experto Luma (Web)", icon: Globe, category: "Contexto", source: "AG_UI_agente_url_contexto_luma" },
+  { id: "soporte", name: "Soporte Luma", icon: LifeBuoy, category: "Atención", source: "AG-UI_Agente_soporte" },
+  { id: "campaign_expert", name: "Experto en Campañas", icon: Megaphone, category: "Marketing", source: "AU_UI_Agente_campana" },
+  { id: "investigacion_fuentes", name: "Investigación de Fuentes", icon: Search, category: "Investigación", source: "AG-UI_investigacion_fuentes" },
+  { id: "licitaciones", name: "Licitaciones", icon: Gavel, category: "Legal", source: "—" },
 ];
 
 function UploadButton() {
@@ -185,7 +192,7 @@ function MicButton() {
       }
     };
 
-    recognitionRef.current = recognition;
+    recognition.recognition = recognition;
   }, [sendToAgent]);
 
   const toggle = () => {
@@ -244,58 +251,160 @@ export default function Page() {
   const { agent: selectedAgent, setAgent: setSelectedAgent } = useSelectedAgent();
   const active = AGENTS.find((a) => a.id === selectedAgent);
 
+  // Activación de hooks Generative UI para todos los agentes
+  useAgentGenerativeUI(selectedAgent);
+
   return (
-    <main className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Panel de Agentes Unificados
-          </h1>
-          <p className="text-gray-400 mt-2">
-            Un frontend → <code className="text-gray-300">/api/copilotkit</code> → backend{" "}
-            <code className="text-gray-300">:8000/&lt;agent_id&gt;</code>
-          </p>
-        </header>
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      {/* Barra de Navegación de Agentes Superior */}
+      <header className="sticky top-0 z-40 bg-gray-900/90 backdrop-blur-md border-b border-gray-800 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                Panel Unificado de Agentes Luma
+                <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-500/30">
+                  Gen UI
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400">
+                Agente actual: <strong className="text-blue-400">{active?.name}</strong> ({selectedAgent})
+              </p>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {AGENTS.map((agent) => (
-            <button
-              key={agent.id}
-              type="button"
-              onClick={() => setSelectedAgent(agent.id)}
-              className={`p-6 rounded-xl border-2 flex items-center gap-4 transition-all ${
-                selectedAgent === agent.id
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-gray-800 bg-gray-800/50 hover:border-gray-700"
-              }`}
-            >
-              <agent.icon className={selectedAgent === agent.id ? "text-blue-400" : "text-gray-500"} />
-              <div className="text-left">
-                <p className="font-semibold">{agent.name}</p>
-                <p className="text-xs text-gray-500">{agent.id}</p>
-                <p className="text-xs text-gray-600 mt-1">← {agent.source}</p>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-2xl no-scrollbar">
+            {AGENTS.map((agent) => {
+              const isSelected = selectedAgent === agent.id;
+              const Icon = agent.icon;
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  onClick={() => setSelectedAgent(agent.id)}
+                  title={`${agent.name} — ${agent.source}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                    isSelected
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                      : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{agent.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+
+      {/* Contenido Principal */}
+      <div className="flex-1">
+        {selectedAgent === "deepsearch" ? (
+          /* Vista Dashboard Completo para Deep Research */
+          <div className="h-[calc(100vh-65px)]">
+            <Dashboard />
+          </div>
+        ) : (
+          /* Vista General para los demás agentes */
+          <main className="max-w-6xl mx-auto p-6 md:p-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                {active?.name}
+              </h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Servicio backend conectado: <code className="text-indigo-300 bg-gray-800 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → :{selectedAgent}</code>
+              </p>
+            </div>
+
+            {/* Grid de selección de agentes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {AGENTS.map((agent) => {
+                const isSelected = selectedAgent === agent.id;
+                const Icon = agent.icon;
+                return (
+                  <button
+                    key={agent.id}
+                    type="button"
+                    onClick={() => setSelectedAgent(agent.id)}
+                    className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden group ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
+                        : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800/50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 group-hover:text-white"}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-gray-800/70 text-gray-400 border border-gray-700/50">
+                        {agent.category}
+                      </span>
+                    </div>
+                    <p className="font-semibold text-sm text-gray-100 mb-1">{agent.name}</p>
+                    <p className="text-xs text-gray-400 font-mono">{agent.id}</p>
+                    <p className="text-[11px] text-gray-400 mt-2 truncate">← {agent.source}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Card de información del agente activo */}
+            <div className="bg-gray-900/70 rounded-2xl p-6 border border-gray-800 shadow-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <h3 className="text-lg font-bold text-gray-200">Capacidades del Agente</h3>
               </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="bg-gray-800/30 rounded-2xl p-8 border border-gray-800">
-          <h2 className="text-xl font-semibold mb-2">Agente activo: {active?.name}</h2>
-          <p className="text-gray-400 text-sm font-mono mb-2">
-            Backend: http://localhost:8000/{selectedAgent}
-          </p>
-          <p className="text-gray-500 text-sm">
-            CopilotKit usa el id <strong className="text-gray-300">{selectedAgent}</strong> en el sidebar.
-            {selectedAgent === "resumen_reuniones" && " Usa el clip 📎 para subir archivos a GCS."}
-            {selectedAgent === "transcription" && " Di 'guardar' al terminar. Live WS: /transcription/live/ws"}
-            {selectedAgent === "analisis_hv" && " Conecta con Zoho Recruit: lista perfiles, descarga CVs y exporta ranking."}
-          </p>
-        </div>
+              <div className="text-gray-400 text-sm leading-relaxed space-y-2">
+                {selectedAgent === "video_producer" && (
+                  <p>Genera guiones y ayudas visuales interactivas. Incluye selector de relación de aspecto, estilo visual y renderizado de galería de imágenes mediante Gen UI.</p>
+                )}
+                {selectedAgent === "projects" && (
+                  <p>Conexión directa con Zoho Projects mediante MCP. Permite crear proyectos, listas y tareas con Human-in-the-Loop para seleccionar grupos y plantillas dinámicamente.</p>
+                )}
+                {selectedAgent === "efemerides" && (
+                  <p>Búsqueda inteligente de fechas y conmemoraciones nacionales, internacionales e industriales, presentadas en tarjetas temáticas clasificadas por categoría.</p>
+                )}
+                {selectedAgent === "analisis_hv" && (
+                  <p>Conecta con Zoho Recruit para listar vacantes abiertas, descargar currículums y generar el ranking interactivo de candidatos con evidencia documental detallada.</p>
+                )}
+                {selectedAgent === "resumen_reuniones" && (
+                  <p>Genera minutas estructuradas a partir de audios o videos. Utiliza el botón 📎 flotante para subir archivos a Google Cloud Storage.</p>
+                )}
+                {selectedAgent === "transcription" && (
+                  <p>Transcripción de voz en tiempo real. Usa el micrófono flotante y di <em>"guardar"</em> al finalizar para persistir en BigQuery.</p>
+                )}
+                {selectedAgent === "url_expert" && (
+                  <p>Consulta y contextualización en vivo sobre el sitio web y servicios de Luma Cloud.</p>
+                )}
+                {selectedAgent === "soporte" && (
+                  <p>Asistencia técnica y resolución de incidencias de primer nivel para usuarios de Luma.</p>
+                )}
+                {selectedAgent === "campaign_expert" && (
+                  <p>Planificación, estrategia y generación de copys para campañas comerciales y publicitarias.</p>
+                )}
+                {selectedAgent === "investigacion_fuentes" && (
+                  <p>Búsqueda y contrastación de datos a través de múltiples fuentes de información confiables.</p>
+                )}
+                {selectedAgent === "licitaciones" && (
+                  <p>Análisis de pliegos y requerimientos para procesos licitatorios y compras públicas.</p>
+                )}
+              </div>
+            </div>
+          </main>
+        )}
       </div>
 
-      <CopilotSidebar agent={selectedAgent} defaultOpen />
+      {/* Sidebar de CopilotKit para los agentes regulares */}
+      {selectedAgent !== "deepsearch" && (
+        <CopilotSidebar defaultOpen />
+      )}
+
       {selectedAgent === "resumen_reuniones" && <UploadButton />}
       {selectedAgent === "transcription" && <MicButton />}
-    </main>
+    </div>
   );
 }
