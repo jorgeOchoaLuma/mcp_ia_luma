@@ -266,23 +266,23 @@ export default function Page() {
   useAgentGenerativeUI(selectedAgent);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       {/* Barra de Navegación de Agentes Superior */}
-      <header className="sticky top-0 z-40 bg-gray-900/90 backdrop-blur-md border-b border-gray-800 px-6 py-3">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-3 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md">
+            <div className="p-2 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-md">
               <Layers className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
                 Panel Unificado de Agentes Luma
-                <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-500/30">
+                <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
                   Gen UI v2
                 </span>
               </h1>
-              <p className="text-xs text-gray-400">
-                Agente actual: <strong className="text-blue-400">{active?.name}</strong> ({selectedAgent})
+              <p className="text-xs text-slate-500">
+                Agente actual: <strong className="text-blue-600">{active?.name}</strong> ({selectedAgent})
               </p>
             </div>
           </div>
@@ -300,8 +300,8 @@ export default function Page() {
                     title={`${agent.name} — ${agent.source}`}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
                       isSelected
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                        : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -317,8 +317,8 @@ export default function Page() {
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className={`p-2 rounded-lg border transition-all ${
                   sidebarOpen
-                    ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
+                    ? "bg-blue-50 border-blue-200 text-blue-600"
+                    : "bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200"
                 }`}
                 title={sidebarOpen ? "Ocultar panel de chat" : "Mostrar panel de chat"}
               >
@@ -333,20 +333,20 @@ export default function Page() {
       <div className="flex-1 flex overflow-hidden">
         {selectedAgent === "deepsearch" ? (
           /* Vista Dashboard Completo para Deep Research */
-          <div className="w-full h-[calc(100vh-65px)]">
+          <div className="w-full h-[calc(100vh-65px)] bg-white">
             <Dashboard />
           </div>
         ) : (
           /* Vista de los demás agentes con panel de chat v2 integrado */
           <>
-            <main className="flex-1 overflow-y-auto p-6 md:p-8">
+            <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
               <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                  <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+                  <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     {active?.name}
                   </h2>
-                  <p className="text-gray-400 text-sm mt-1">
-                    Servicio backend conectado: <code className="text-indigo-300 bg-gray-800 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → /{selectedAgent}</code>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Servicio backend conectado: <code className="text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → /{selectedAgent}</code>
                   </p>
                 </div>
 
@@ -362,33 +362,33 @@ export default function Page() {
                         onClick={() => setSelectedAgent(agent.id)}
                         className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden group ${
                           isSelected
-                            ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
-                            : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800/50"
+                            ? "border-blue-500 bg-blue-50/70 shadow-md shadow-blue-500/5"
+                            : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
                         }`}
                       >
                         <div className="flex items-start justify-between mb-3">
-                          <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 group-hover:text-white"}`}>
+                          <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-slate-200"}`}>
                             <Icon className="w-5 h-5" />
                           </div>
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-gray-800/70 text-gray-400 border border-gray-700/50">
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                             {agent.category}
                           </span>
                         </div>
-                        <p className="font-semibold text-sm text-gray-100 mb-1">{agent.name}</p>
-                        <p className="text-xs text-gray-400 font-mono">{agent.id}</p>
-                        <p className="text-[11px] text-gray-400 mt-2 truncate">← {agent.source}</p>
+                        <p className="font-semibold text-sm text-slate-900 mb-1">{agent.name}</p>
+                        <p className="text-xs text-slate-500 font-mono">{agent.id}</p>
+                        <p className="text-[11px] text-slate-400 mt-2 truncate">← {agent.source}</p>
                       </button>
                     );
                   })}
                 </div>
 
                 {/* Card de información del agente activo */}
-                <div className="bg-gray-900/70 rounded-2xl p-6 border border-gray-800 shadow-xl">
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <h3 className="text-lg font-bold text-gray-200">Capacidades del Agente</h3>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <h3 className="text-lg font-bold text-slate-900">Capacidades del Agente</h3>
                   </div>
-                  <div className="text-gray-400 text-sm leading-relaxed space-y-2">
+                  <div className="text-slate-600 text-sm leading-relaxed space-y-2">
                     {selectedAgent === "video_producer" && (
                       <p>Genera guiones y ayudas visuales interactivas. Incluye selector de relación de aspecto, estilo visual y renderizado de galería de imágenes mediante Gen UI.</p>
                     )}
@@ -429,22 +429,22 @@ export default function Page() {
 
             {/* Panel Lateral de Chat con CopilotChat de Gen UI v2 */}
             {sidebarOpen && (
-              <aside className="w-[440px] shrink-0 border-l border-gray-800 bg-gray-900 flex flex-col h-[calc(100vh-65px)]">
-                <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/90">
+              <aside className="w-[440px] shrink-0 border-l border-slate-200 bg-white flex flex-col h-[calc(100vh-65px)]">
+                <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-2">
-                    {active && <active.icon className="w-4 h-4 text-blue-400" />}
-                    <span className="font-semibold text-sm text-gray-200">{active?.name}</span>
+                    {active && <active.icon className="w-4 h-4 text-blue-600" />}
+                    <span className="font-semibold text-sm text-slate-800">{active?.name}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSidebarOpen(false)}
-                    className="p-1 rounded hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                    className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
                     title="Cerrar panel"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto bg-gray-950/40 p-2">
+                <div className="flex-1 overflow-y-auto bg-slate-50/50 p-2">
                   <CopilotChat
                     agentId={selectedAgent}
                     key={selectedAgent}
