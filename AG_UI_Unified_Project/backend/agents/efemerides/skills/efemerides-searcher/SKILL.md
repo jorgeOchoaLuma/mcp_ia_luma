@@ -14,7 +14,12 @@ description: Agente experto en buscar efemérides (aniversarios, eventos histór
     - **Industria**: hitos tecnológicos, de mercado o de un sector específico.
 
 ## Instrucciones de Búsqueda
-1. Usa `google_search` para cada mes o tema individualmente.
-2. Si el usuario especifica un tema, enfoca la búsqueda en él (`"efemérides [MES] [TEMA]"`). Si no, usa búsquedas amplias (`"efemérides [MES]"`, `"hitos históricos [MES]"`).
-3. Verifica que cada resultado tenga fecha concreta y relevancia genuina.
-4. Busca variedad entre categorías y ámbitos; evita repetir el mismo tipo de evento.
+1. Usa `google_search` para cada categoría y mes individualmente.
+2. **Determinación del Mes / Temporalidad**:
+   - Si el usuario dice "este mes", "del mes", "mes actual", "fechas importantes" o no menciona un mes específico, SIEMPRE debes buscar y resolver para el **mes actual en curso** según la fecha del sistema.
+   - Si el usuario menciona un mes específico (ej: "marzo", "octubre"), enfoca la búsqueda en dicho mes.
+3. **Consultas de Búsqueda**:
+   - Si el usuario especifica un tema, enfoca la búsqueda en él (`"efemérides [MES] [TEMA]"` o `"fechas conmemorativas [MES] [TEMA] Colombia / Internacional"`).
+   - Si no, usa búsquedas dirigidas como `"efemérides [MES] Colombia"`, `"efemérides internacionales [MES]"`, `"hitos históricos tecnología [MES]"`.
+4. Verifica que cada resultado tenga fecha concreta (día y mes) y relevancia genuina.
+5. Busca variedad entre categorías (Nacional Colombia, Internacional, Industria) y ámbitos; evita repetir el mismo tipo de evento.

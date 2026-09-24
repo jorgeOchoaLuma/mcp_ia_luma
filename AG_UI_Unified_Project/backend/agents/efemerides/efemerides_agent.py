@@ -7,6 +7,7 @@ y las muestra mediante el componente generativo 'efemerides_card' del frontend.
 import os
 import asyncio
 import logging
+from datetime import datetime
 
 from google.adk.agents import Agent
 from google.adk.apps import App
@@ -28,6 +29,19 @@ logger = logging.getLogger(__name__)
 # ─── Config ───────────────────────────────────────────────────────────────────
 PROJECT_ID    = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
 BQ_DATASET_ID = os.environ.get("BQ_DATASET_ID", "agente_analytics_db")
+
+# ─── Helpers de Fecha / Contexto Temporal ─────────────────────────────────────
+MESES_ES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+]
+
+
+def _get_current_temporal_context() -> tuple[str, str, int]:
+    now = datetime.now()
+    mes_nombre = MESES_ES[now.month - 1]
+    fecha_str = f"{now.day} de {mes_nombre} de {now.year}"
+    return fecha_str, mes_nombre, now.year
 
 # ─── 1. BigQuery Plugin ────────────────────────────────────────────────────────
 _bq_plugin = BigQueryAgentAnalyticsPlugin(
@@ -55,17 +69,61 @@ _GENERATIVE_UI_INSTRUCTION = """
 Cuando encuentres efemérides, llama SIEMPRE a la tool `efemerides_card`
 pasando el array completo (fecha, evento, categoria, descripcion) para que
 el frontend las muestre como tarjetas — nunca respondas el JSON como texto
-plano ni en formato markdown. Después de llamar `efemerides_card`, agrega un
-mensaje breve en texto conversacional (1-2 frases) resumiendo lo que
-encontraste. Si no hay resultados, llama a `efemerides_card` con una lista
-vacía y explica brevemente por qué.
+plano ni en formato markdown. Las categorías válidas son:
+- 'Nacional Colombia'
+- 'Internacional'
+- 'Industria'
+
+Después de llamar `efemerides_card`, agrega un mensaje breve en texto
+conversacional (1-2 frases) indicando el mes o tema presentado y resumiendo
+lo que encontraste. Si no hay resultados, llama a `efemerides_card` con una
+lista vacía y explica brevemente por qué.
 
 No te conformes con la primera búsqueda: sigue las instrucciones de
-cobertura mínima del skill (varias búsquedas, mínimo ~9 efemérides
-repartidas entre las 3 categorías) antes de llamar `efemerides_card`.
+cobertura mínima (las 3 búsquedas con mínimo ~9 efemérides repartidas
+entre las 3 categorías) antes de llamar `efemerides_card`.
 """
 
-# ─── 4. Helper async ──────────────────────────────────────────────────────────
+# ─── 4. Instrucciones Dinámicas con Contexto Temporal ────────────────────────
+def _search_instruction(context=None) -> str:
+    fecha_str, mes_nombre, anio = _get_current_temporal_context()
+    return f"""{_efemerides_skill.instructions}
+
+CONTEXTO TEMPORAL DEL SISTEMA:
+- Fecha de hoy: {fecha_str}
+- Mes actual en curso: {mes_nombre} ({anio})
+
+INSTRUCCIONES ESPECÍFICAS DE BÚSQUEDA:
+1. Si la solicitud dice "este mes", "del mes", "mes actual", "fechas importantes" o no especifica mes, busca SIEMPRE para el mes actual ({mes_nombre}).
+2. En esta llamada específica, devuelve al menos 4-5 efemérides distintas y concretas (con día exacto, evento y descripción) para la categoría y el mes/tema solicitado — no menos.
+"""
+
+
+def _root_instruction(context=None) -> str:
+    fecha_str, mes_nombre, anio = _get_current_temporal_context()
+    return f"""Eres el agente especializado en buscar y presentar efemérides y fechas conmemorativas.
+
+CONTEXTO TEMPORAL DEL SISTEMA:
+- Fecha de hoy: {fecha_str}
+- Mes actual en curso: {mes_nombre} ({anio})
+
+REGLAS DE DETERMINACIÓN DEL MES:
+1. Si el usuario solicita "listar fechas del mes", "fechas importantes", "este mes", "mes actual", "efemérides" o NO indica un mes explícito, DEBES ASUMIR SIEMPRE el mes actual en curso: **{mes_nombre}**.
+2. Si el usuario indica un mes o temática específica (ej: "marzo", "octubre", "tecnología"), utiliza el mes o tema indicado por el usuario.
+3. Si el usuario pide "agrupar" o clasificar, mantén la clasificación en las tres categorías estándar: 'Nacional Colombia', 'Internacional' e 'Industria'.
+
+FLUJO OBLIGATORIO DE BÚSQUEDA:
+Para cualquier pedido de efemérides, DEBES llamar a la tool `efemerides_search_agent` TRES veces por separado indicando explícitamente el mes objetivo (por defecto '{mes_nombre}'):
+  1. Pidiéndole específicamente: efemérides NACIONALES DE COLOMBIA de [MES_OBJETIVO]
+  2. Pidiéndole específicamente: efemérides INTERNACIONALES de [MES_OBJETIVO]
+  3. Pidiéndole específicamente: efemérides de INDUSTRIA/tecnología de [MES_OBJETIVO]
+
+Junta los tres resultados, clasifica cada uno en su categoría correspondiente ('Nacional Colombia', 'Internacional', 'Industria'), y NO respondas hasta haber hecho las tres llamadas.
+
+{_GENERATIVE_UI_INSTRUCTION}
+"""
+
+# ─── 5. Helper async ──────────────────────────────────────────────────────────
 def _run_async(coro):
     try:
         loop = asyncio.get_event_loop()
@@ -76,7 +134,7 @@ def _run_async(coro):
     except Exception as e:
         logger.warning(f"[EFEMERIDES BQ] _run_async error: {e}")
 
-# ─── 5. Callbacks ─────────────────────────────────────────────────────────────
+# ─── 6. Callbacks ─────────────────────────────────────────────────────────────
 def _before_model(callback_context: CallbackContext, llm_request: LlmRequest):
     try:
         _run_async(_bq_plugin.before_model_callback(
@@ -119,17 +177,12 @@ def _after_model(callback_context: CallbackContext, llm_response: LlmResponse):
         logger.warning(f"[EFEMERIDES BQ] after_model error: {e}")
     return _stop_on_terminal_text(callback_context, llm_response)
 
-# ─── 6. Agentes ───────────────────────────────────────────────────────────────
+# ─── 7. Agentes ───────────────────────────────────────────────────────────────
 _search_agent = Agent(
     name="efemerides_search_agent",
     model="gemini-3.1-flash-lite",
     description="Busca efemérides en la web siguiendo el skill de cobertura.",
-    instruction=(
-        _efemerides_skill.instructions
-        + "\n\nEn esta llamada específica, devuelve al menos 4-5 "
-        "efemérides distintas y concretas (con fecha exacta) para la "
-        "categoría y el mes/tema que te pidan — no menos."
-    ),
+    instruction=_search_instruction,
     tools=[google_search],
 )
 
@@ -137,20 +190,7 @@ _root_agent = Agent(
     name="efemerides_agent",
     model="gemini-3.7-flash",
     description="Agente especializado en buscar efemérides de cualquier tema.",
-    instruction=(
-        "Para cualquier pedido de efemérides, llama a la tool `efemerides_search_agent` "
-        "TRES veces por separado (nunca una sola vez para todo):\n"
-        "  1. Pidiéndole específicamente efemérides NACIONALES DE COLOMBIA "
-        "del mes/tema solicitado.\n"
-        "  2. Pidiéndole específicamente efemérides INTERNACIONALES del "
-        "mes/tema solicitado.\n"
-        "  3. Pidiéndole específicamente efemérides de INDUSTRIA/tecnología "
-        "(o del tema pedido) del mes/tema solicitado.\n"
-        "Junta los tres resultados, clasifica cada uno en su categoría "
-        "correspondiente, y NO respondas hasta haber hecho las tres "
-        "llamadas.\n\n"
-        + _GENERATIVE_UI_INSTRUCTION
-    ),
+    instruction=_root_instruction,
     tools=[
         AgentTool(agent=_search_agent),
         AGUIToolset(),
