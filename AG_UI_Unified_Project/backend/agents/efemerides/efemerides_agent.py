@@ -7,6 +7,7 @@ y las muestra mediante el componente generativo 'efemerides_card' del frontend.
 import os
 import asyncio
 import logging
+from datetime import datetime
 
 from google.adk.agents import Agent
 from google.adk.apps import App
@@ -119,17 +120,63 @@ def _after_model(callback_context: CallbackContext, llm_response: LlmResponse):
         logger.warning(f"[EFEMERIDES BQ] after_model error: {e}")
     return _stop_on_terminal_text(callback_context, llm_response)
 
-# ─── 6. Agentes ───────────────────────────────────────────────────────────────
+# ─── 6. Contexto Temporal Dinámico y Agentes ──────────────────────────────────
+_MESES_ES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+]
+
+
+def _get_current_date_context() -> str:
+    now = datetime.now()
+    mes_nombre = _MESES_ES[now.month - 1]
+    return (
+        "=== CONTEXTO TEMPORAL ACTUAL OBLIGATORIO ===\n"
+        f"- Fecha de hoy: {now.day} de {mes_nombre} de {now.year}.\n"
+        f"- Mes actual: {mes_nombre.upper()} (mes número {now.month}).\n"
+        f"- Año actual: {now.year}.\n"
+        f"- REGLA ESTRICTA DE FECHA: Si el usuario menciona 'mes actual', 'este mes', 'hoy' "
+        f"o no especifica un mes determinado, DEBES buscar y presentar única y exclusivamente "
+        f"las efemérides del mes de {mes_nombre.upper()}. NUNCA uses otro mes (como mayo, enero, etc.) "
+        f"cuando se solicite el mes actual.\n"
+        "============================================\n"
+    )
+
+
+def _search_agent_instruction(ctx=None) -> str:
+    date_ctx = _get_current_date_context()
+    return (
+        f"{date_ctx}\n"
+        f"{_efemerides_skill.instructions}\n\n"
+        "En esta llamada específica, devuelve al menos 4-5 efemérides distintas y concretas "
+        "(con fecha exacta: día y mes) para la categoría y el mes/tema que te pidan — no menos. "
+        "Si te piden el mes actual, enfócate estrictamente en el mes actual indicado en el contexto temporal."
+    )
+
+
+def _root_agent_instruction(ctx=None) -> str:
+    date_ctx = _get_current_date_context()
+    return (
+        f"{date_ctx}\n"
+        "Para cualquier pedido de efemérides, llama a la tool `efemerides_search_agent` "
+        "TRES veces por separado (nunca una sola vez para todo):\n"
+        "  1. Pidiéndole específicamente efemérides NACIONALES DE COLOMBIA "
+        "del mes/tema solicitado (si el usuario pide 'mes actual' o 'este mes', indícale explícitamente el mes actual indicado arriba).\n"
+        "  2. Pidiéndole específicamente efemérides INTERNACIONALES del "
+        "mes/tema solicitado (con el mes explícito).\n"
+        "  3. Pidiéndole específicamente efemérides de INDUSTRIA/tecnología "
+        "(o del tema pedido) del mes/tema solicitado (con el mes explícito).\n"
+        "Junta los tres resultados, clasifica cada uno en su categoría "
+        "correspondiente, y NO respondas hasta haber hecho las tres llamadas.\n\n"
+        + _GENERATIVE_UI_INSTRUCTION
+    )
+
+
 _search_agent = Agent(
     name="efemerides_search_agent",
     model="gemini-3.1-flash-lite",
     description="Busca efemérides en la web siguiendo el skill de cobertura.",
-    instruction=(
-        _efemerides_skill.instructions
-        + "\n\nEn esta llamada específica, devuelve al menos 4-5 "
-        "efemérides distintas y concretas (con fecha exacta) para la "
-        "categoría y el mes/tema que te pidan — no menos."
-    ),
+    instruction=_search_agent_instruction,
     tools=[google_search],
 )
 
@@ -137,20 +184,7 @@ _root_agent = Agent(
     name="efemerides_agent",
     model="gemini-3.7-flash",
     description="Agente especializado en buscar efemérides de cualquier tema.",
-    instruction=(
-        "Para cualquier pedido de efemérides, llama a la tool `efemerides_search_agent` "
-        "TRES veces por separado (nunca una sola vez para todo):\n"
-        "  1. Pidiéndole específicamente efemérides NACIONALES DE COLOMBIA "
-        "del mes/tema solicitado.\n"
-        "  2. Pidiéndole específicamente efemérides INTERNACIONALES del "
-        "mes/tema solicitado.\n"
-        "  3. Pidiéndole específicamente efemérides de INDUSTRIA/tecnología "
-        "(o del tema pedido) del mes/tema solicitado.\n"
-        "Junta los tres resultados, clasifica cada uno en su categoría "
-        "correspondiente, y NO respondas hasta haber hecho las tres "
-        "llamadas.\n\n"
-        + _GENERATIVE_UI_INSTRUCTION
-    ),
+    instruction=_root_agent_instruction,
     tools=[
         AgentTool(agent=_search_agent),
         AGUIToolset(),

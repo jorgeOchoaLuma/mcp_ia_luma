@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-
-import {
-  CopilotChat,
-  useFrontendTool,
-} from "@copilotkit/react-core/v2";
+import { useCopilotChat } from "@copilotkit/react-core";
+import { useFrontendTool } from "@copilotkit/react-core/v2";
+import { CopilotChat } from "@copilotkit/react-ui";
+import { Role, TextMessage } from "@copilotkit/runtime-client-gql";
 
 import {
   Sparkles,
@@ -38,14 +37,45 @@ export default function Dashboard() {
 
   const [activeDraftIndex, setActiveDraftIndex] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { appendMessage } = useCopilotChat();
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
+  const handleCopy = async (text: string, id: string) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error("Clipboard API no disponible");
+      }
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // Fallback robusto con textarea temporal
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch (err) {
+        console.error("Error al copiar texto:", err);
+      }
+    }
+  };
 
-    setTimeout(() => {
-      setCopiedId(null);
-    }, 2000);
+  const handlePromptClick = (prompt: string) => {
+    appendMessage(
+      new TextMessage({
+        content: prompt,
+        role: Role.User,
+      })
+    );
   };
 
   const handleDownloadJSON = () => {
@@ -64,8 +94,9 @@ export default function Dashboard() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `analisis-${appState.sector?.toLowerCase().replace(/\s+/g, "-") || "contenido"
-      }.json`;
+    a.download = `analisis-${
+      appState.sector?.toLowerCase().replace(/\s+/g, "-") || "contenido"
+    }.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -259,12 +290,27 @@ export default function Dashboard() {
               </p>
 
               <div className="empty-state-chips">
-                <span className="chip">
-                  Analiza tendencias de moda 2026
-                </span>
-                <span className="chip">
-                  Ideas de contenido para salud mental
-                </span>
+                <button
+                  type="button"
+                  onClick={() => handlePromptClick("Analiza tendencias de moda 2026")}
+                  className="chip hover:bg-indigo-100 hover:scale-105 active:scale-95 transition-all cursor-pointer font-medium border border-indigo-200"
+                >
+                  ✨ Analiza tendencias de moda 2026
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePromptClick("Ideas de contenido para salud mental")}
+                  className="chip hover:bg-indigo-100 hover:scale-105 active:scale-95 transition-all cursor-pointer font-medium border border-indigo-200"
+                >
+                  💡 Ideas de contenido para salud mental
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePromptClick("Analiza tendencias de gastronomía y restaurantes para 2026")}
+                  className="chip hover:bg-indigo-100 hover:scale-105 active:scale-95 transition-all cursor-pointer font-medium border border-indigo-200"
+                >
+                  🍳 Tendencias de Gastronomía
+                </button>
               </div>
             </div>
           ) : (
@@ -308,8 +354,33 @@ export default function Dashboard() {
                   <div className="trends-grid">
                     {appState.tendencias.map((t, idx) => (
                       <div key={idx} className="card trend-card">
-                        <div className="trend-number">
-                          Tendencia 0{idx + 1}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="trend-number">
+                            Tendencia 0{idx + 1}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(
+                                `${t.titulo}\n\n${t.contexto}\n\nImpacto: ${t.impacto}\nTarget: ${t.audiencia_objetivo}`,
+                                `trend-${idx}`
+                              )
+                            }
+                            className={`copy-btn text-xs py-0.5 px-2 ${
+                              copiedId === `trend-${idx}` ? "copied" : ""
+                            }`}
+                            title="Copiar esta tendencia"
+                          >
+                            {copiedId === `trend-${idx}` ? (
+                              <>
+                                <Check size={12} /> Copiado
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} /> Copiar
+                              </>
+                            )}
+                          </button>
                         </div>
 
                         <h3 className="trend-title">{t.titulo}</h3>
@@ -370,9 +441,34 @@ export default function Dashboard() {
                           className={`card idea-card ${idea.destacada ? "destacada" : ""
                             }`}
                         >
-                          <span className={`format-badge ${platform}`}>
-                            {idea.formato}
-                          </span>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`format-badge ${platform}`}>
+                              {idea.formato}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(
+                                  `${idea.titulo_sugerido}\n\n${idea.descripcion_breve}\n\nEnfoque: ${idea.enfoque}\nPlataformas: ${idea.plataformas.join(", ")}\nHorario: ${idea.horario_sugerido}`,
+                                  `idea-${idx}`
+                                )
+                              }
+                              className={`copy-btn text-xs py-0.5 px-2 ${
+                                copiedId === `idea-${idx}` ? "copied" : ""
+                              }`}
+                              title="Copiar esta idea"
+                            >
+                              {copiedId === `idea-${idx}` ? (
+                                <>
+                                  <Check size={12} /> Copiado
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={12} /> Copiar
+                                </>
+                              )}
+                            </button>
+                          </div>
 
                           <h3 className="idea-title">
                             {idea.titulo_sugerido}
@@ -454,7 +550,7 @@ export default function Dashboard() {
 
                         {draft.piezas[activeDraftIndex] && (
                           <div className="draft-content-box">
-                            <div className="flex justify-between items-center mb-0">
+                            <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200">
                               <h4 className="draft-hook">
                                 {
                                   draft.piezas[activeDraftIndex].borrador
@@ -462,34 +558,49 @@ export default function Dashboard() {
                                 }
                               </h4>
 
-                              <button
-                                onClick={() =>
-                                  handleCopy(
-                                    draft.piezas[activeDraftIndex].borrador
-                                      .cuerpo,
-                                    `${draftIdx}-${activeDraftIndex}`
-                                  )
-                                }
-                                className={`copy-btn ${copiedId ===
-                                    `${draftIdx}-${activeDraftIndex}`
-                                    ? "copied"
-                                    : ""
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const p = draft.piezas[activeDraftIndex];
+                                    const fullText = [
+                                      p.borrador.titulo_o_hook,
+                                      p.borrador.cuerpo,
+                                      p.borrador.cta ? `👉 ${p.borrador.cta}` : "",
+                                      p.borrador.hashtags?.length
+                                        ? p.borrador.hashtags.join(" ")
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join("\n\n");
+                                    handleCopy(
+                                      fullText,
+                                      `full-${draftIdx}-${activeDraftIndex}`
+                                    );
+                                  }}
+                                  className={`copy-btn text-xs font-semibold ${
+                                    copiedId ===
+                                    `full-${draftIdx}-${activeDraftIndex}`
+                                      ? "copied"
+                                      : ""
                                   }`}
-                              >
-                                {copiedId ===
-                                  `${draftIdx}-${activeDraftIndex}` ? (
-                                  <>
-                                    <Check size={14} /> Copiado
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy size={14} /> Copiar
-                                  </>
-                                )}
-                              </button>
+                                  title="Copiar texto completo (Título, cuerpo, CTA y hashtags)"
+                                >
+                                  {copiedId ===
+                                  `full-${draftIdx}-${activeDraftIndex}` ? (
+                                    <>
+                                      <Check size={13} /> Todo Copiado
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy size={13} /> Copiar Post Completo
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             </div>
 
-                            <div className="draft-body">
+                            <div className="draft-body select-text">
                               {
                                 draft.piezas[activeDraftIndex].borrador
                                   .cuerpo
@@ -498,7 +609,7 @@ export default function Dashboard() {
 
                             {draft.piezas[activeDraftIndex].borrador
                               .cta && (
-                                <div className="draft-cta">
+                                <div className="draft-cta select-text">
                                   👉{" "}
                                   {
                                     draft.piezas[activeDraftIndex].borrador
@@ -511,7 +622,7 @@ export default function Dashboard() {
                               .hashtags &&
                               draft.piezas[activeDraftIndex].borrador
                                 .hashtags.length > 0 && (
-                                <div className="draft-hashtags">
+                                <div className="draft-hashtags select-text">
                                   {draft.piezas[
                                     activeDraftIndex
                                   ].borrador.hashtags.map((tag, i) => (
@@ -524,7 +635,7 @@ export default function Dashboard() {
 
                             {draft.piezas[activeDraftIndex].borrador
                               .notas_visuales && (
-                                <div className="draft-notes mt-2">
+                                <div className="draft-notes mt-2 select-text">
                                   <strong>🎨 Tip Visual:</strong>{" "}
                                   {
                                     draft.piezas[activeDraftIndex].borrador
@@ -548,14 +659,23 @@ export default function Dashboard() {
         ====================================================== */}
 
         <div className="chat-panel">
-          <div className="chat-panel-header">Asistente de Contenido</div>
+          <div className="chat-panel-header">
+            <span className="flex items-center gap-2">
+              <Sparkles size={15} className="text-indigo-600" />
+              Asistente de Contenido
+            </span>
+          </div>
 
-          <CopilotChat
-            labels={{
-              welcomeMessageText:
-                "¿En qué sector quieres que investigue tendencias y cree contenido hoy?",
-            }}
-          />
+          <div className="flex-1 min-h-0 h-full overflow-hidden flex flex-col">
+            <CopilotChat
+              className="h-full flex-1"
+              labels={{
+                title: "Asistente de Contenido",
+                initial:
+                  "¿En qué sector quieres que investigue tendencias y redacte contenido hoy? Puedes pulsar una de las sugerencias de la izquierda o escribir tu sector aquí.",
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

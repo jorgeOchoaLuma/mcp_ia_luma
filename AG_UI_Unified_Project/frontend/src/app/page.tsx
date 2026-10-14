@@ -255,23 +255,23 @@ export default function Page() {
   useAgentGenerativeUI(selectedAgent);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       {/* Barra de Navegación de Agentes Superior */}
-      <header className="sticky top-0 z-40 bg-gray-900/90 backdrop-blur-md border-b border-gray-800 px-6 py-3">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-3 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md">
+            <div className="p-2 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-sm">
               <Layers className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
                 Panel Unificado de Agentes Luma
-                <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-500/30">
+                <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
                   Gen UI
                 </span>
               </h1>
-              <p className="text-xs text-gray-400">
-                Agente actual: <strong className="text-blue-400">{active?.name}</strong> ({selectedAgent})
+              <p className="text-xs text-slate-500">
+                Agente actual: <strong className="text-blue-600">{active?.name}</strong> ({selectedAgent})
               </p>
             </div>
           </div>
@@ -288,8 +288,8 @@ export default function Page() {
                   title={`${agent.name} — ${agent.source}`}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
                     isSelected
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                      : "bg-gray-800/80 text-gray-300 hover:bg-gray-700/80 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80"
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -312,11 +312,11 @@ export default function Page() {
           /* Vista General para los demás agentes */
           <main className="max-w-6xl mx-auto p-6 md:p-8">
             <div className="mb-8">
-              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                 {active?.name}
               </h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Servicio backend conectado: <code className="text-indigo-300 bg-gray-800 px-1.5 py-0.5 rounded font-mono text-xs">/api/copilotkit → :{selectedAgent}</code>
+              <p className="text-slate-500 text-sm mt-1">
+                Servicio backend conectado: <code className="text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded font-mono text-xs">/api/copilotkit → :{selectedAgent}</code>
               </p>
             </div>
 
@@ -332,33 +332,33 @@ export default function Page() {
                     onClick={() => setSelectedAgent(agent.id)}
                     className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden group ${
                       isSelected
-                        ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10"
-                        : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800/50"
+                        ? "border-blue-600 bg-blue-50/70 shadow-md shadow-blue-500/10 ring-2 ring-blue-500/20"
+                        : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/20 hover:shadow-sm"
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 group-hover:text-white"}`}>
+                      <div className={`p-2.5 rounded-lg ${isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600"}`}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-gray-800/70 text-gray-400 border border-gray-700/50">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                         {agent.category}
                       </span>
                     </div>
-                    <p className="font-semibold text-sm text-gray-100 mb-1">{agent.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{agent.id}</p>
-                    <p className="text-[11px] text-gray-400 mt-2 truncate">← {agent.source}</p>
+                    <p className="font-semibold text-sm text-slate-900 mb-1">{agent.name}</p>
+                    <p className="text-xs text-slate-500 font-mono">{agent.id}</p>
+                    <p className="text-[11px] text-slate-400 mt-2 truncate">← {agent.source}</p>
                   </button>
                 );
               })}
             </div>
 
             {/* Card de información del agente activo */}
-            <div className="bg-gray-900/70 rounded-2xl p-6 border border-gray-800 shadow-xl">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <h3 className="text-lg font-bold text-gray-200">Capacidades del Agente</h3>
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-lg font-bold text-slate-900">Capacidades del Agente</h3>
               </div>
-              <div className="text-gray-400 text-sm leading-relaxed space-y-2">
+              <div className="text-slate-600 text-sm leading-relaxed space-y-2">
                 {selectedAgent === "video_producer" && (
                   <p>Genera guiones y ayudas visuales interactivas. Incluye selector de relación de aspecto, estilo visual y renderizado de galería de imágenes mediante Gen UI.</p>
                 )}

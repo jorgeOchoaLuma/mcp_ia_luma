@@ -3,7 +3,8 @@ uvicorn
 google-adk
 google-genai
 python-dotenv
-ag-ui-adk
+ag-ui-adk==0.6.5
+ag-ui-protocol<1.0.0
 pydantic
 mcp>=1.24.0,<2.0.0
 google-cloud-bigquery
