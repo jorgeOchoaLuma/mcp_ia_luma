@@ -57,12 +57,22 @@ def _get_access_token() -> str:
     if _token_cache["access_token"] and time.time() < _token_cache["expires_at"] - 60:
         return _token_cache["access_token"]
 
+    refresh_token = (
+        os.environ.get("ZOHO_PROJECTS_REFRESH_TOKEN")
+        or os.environ.get("ZOHO_REFRESH_TOKEN", "")
+    )
+    client_id = os.environ.get("ZOHO_PROJECTS_CLIENT_ID") or os.environ.get("ZOHO_CLIENT_ID", "")
+    client_secret = os.environ.get("ZOHO_PROJECTS_CLIENT_SECRET") or os.environ.get("ZOHO_CLIENT_SECRET", "")
+
+    source = "ZOHO_PROJECTS_REFRESH_TOKEN" if os.environ.get("ZOHO_PROJECTS_REFRESH_TOKEN") else "ZOHO_REFRESH_TOKEN (FALLBACK)"
+    print(f"[ZOHO PROJECTS] Solicitando access_token usando: {source} (token_prefix: {refresh_token[:10]}...)")
+
     resp = httpx.post(
         f"{ZOHO_ACCOUNTS_URL}/oauth/v2/token",
         data={
-            "refresh_token": ZOHO_REFRESH_TOKEN,
-            "client_id":     ZOHO_CLIENT_ID,
-            "client_secret": ZOHO_CLIENT_SECRET,
+            "refresh_token": refresh_token,
+            "client_id":     client_id,
+            "client_secret": client_secret,
             "grant_type":    "refresh_token",
         },
         timeout=30,
@@ -73,6 +83,7 @@ def _get_access_token() -> str:
         raise ValueError(f"Error al obtener access_token de Zoho: {data}")
     _token_cache["access_token"] = data["access_token"]
     _token_cache["expires_at"] = time.time() + data.get("expires_in", 3600)
+    print(f"[ZOHO PROJECTS] Token obtenido. Scopes asignados por Zoho: {data.get('scope')}")
     return _token_cache["access_token"]
 
 
@@ -86,6 +97,7 @@ def _headers() -> dict:
 def _get(url: str, params: dict | None = None) -> dict:
     resp = httpx.get(url, headers=_headers(), params=params, timeout=30)
     if resp.status_code >= 400:
+        print(f"[ZOHO PROJECTS ERROR] URL: {url} | Status: {resp.status_code} | Body: {resp.text}")
         return {"error": True, "status_code": resp.status_code, "body": resp.text, "url": str(resp.request.url)}
     return resp.json()
 
