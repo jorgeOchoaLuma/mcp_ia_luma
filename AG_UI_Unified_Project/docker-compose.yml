@@ -1,6 +1,8 @@
-# AG_UI_Unified_Project — Backend + Frontend unificados
-# Rama: migracion_unificado
-# Coolify: recurso Docker Compose con base path AG_UI_Unified_Project
+# AG_UI_Unified_Project — Backend (Coolify / Producción)
+# En Coolify se despliega exclusivamente el servicio backend.
+# Para ejecutar todo en local (Backend + Frontend), usar:
+#   .\run-local.bat   (o docker compose up)
+# Configuración local extendida: docker-compose.local.yml / docker-compose.override.yml
 
 services:
   backend:
@@ -8,12 +10,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "${BACKEND_PUBLISH_PORT:-8000}:${BACKEND_PORT:-8000}"
+      - "${BACKEND_PUBLISH_PORT:-8010}:${BACKEND_PORT:-8009}"
     environment:
-      PORT: ${BACKEND_PORT:-8000}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
-      GOOGLE_GENAI_USE_VERTEXAI: ${GOOGLE_GENAI_USE_VERTEXAI:-TRUE}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      PORT: ${BACKEND_PORT:-8009}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-${GEMINI_API_KEY:-}}
+      GOOGLE_GENAI_USE_VERTEXAI: ${GOOGLE_GENAI_USE_VERTEXAI:-${VERTEX_API:-TRUE}}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-${PROJECT_ID:-}}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-us-central1}
       GOOGLE_APPLICATION_CREDENTIALS_BASE64: ${GOOGLE_APPLICATION_CREDENTIALS_BASE64:-}
       DATASTORE_ID: ${DATASTORE_ID:-}
@@ -28,7 +31,7 @@ services:
       ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET:-}
       ZOHO_SHEET_WORKBOOK_ID: ${ZOHO_SHEET_WORKBOOK_ID:-}
       DOWNLOAD_BASE_PATH: ${DOWNLOAD_BASE_PATH:-./cvs_descargados}
-      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:8000}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:${BACKEND_PUBLISH_PORT:-8010}}
     healthcheck:
       test:
         [
@@ -39,20 +42,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PUBLISH_PORT:-3000}:3000"
-    environment:
-      # URL interna del backend (dentro de la red Docker)
-      BACKEND_URL: http://backend:${BACKEND_PORT:-8000}
-      # Variables para GCS (subida de archivos desde el frontend)
-      GOOGLE_APPLICATION_CREDENTIALS_BASE64: ${GOOGLE_APPLICATION_CREDENTIALS_BASE64:-}
-      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
-      GCS_BUCKET_RESUMEN: ${GCS_BUCKET_RESUMEN:-resumen-reuniones}
-    depends_on:
-      backend:
-        condition: service_healthy
