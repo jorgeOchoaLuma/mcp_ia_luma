@@ -69,8 +69,8 @@ bq_plugin = BigQueryAgentAnalyticsPlugin(
 # =========================
 
 VERTEX_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-IMAGE_MODEL_ID = os.environ.get("IMAGE_MODEL_ID", "gemini-3.1-flash-image-preview")
-EVAL_MODEL_ID = os.environ.get("EVAL_MODEL_ID", "gemini-3-flash-preview")
+IMAGE_MODEL_ID = os.environ.get("IMAGE_MODEL_ID", "gemini-3.1-flash-image")
+EVAL_MODEL_ID = os.environ.get("EVAL_MODEL_ID", "gemini-3.1-flash-image")
 
 IMAGE_QUALITY_THRESHOLD = float(os.environ.get("IMAGE_QUALITY_THRESHOLD", "3.5"))
 
@@ -482,6 +482,7 @@ def generar_imagen_visual(
         aspect_ratio = DEFAULT_ASPECT_RATIO
 
     try:
+        print(f"[VIDEO AGENT] Generando imagen para momento '{momento}' con modelo '{IMAGE_MODEL_ID}'...")
         prompt_base = prompt_narrativo_precalculado or _construir_prompt_fallback(
             momento, elemento_visual, texto_overlay, composicion,
             _resolver_estilo(estilo_id),
@@ -489,6 +490,7 @@ def generar_imagen_visual(
 
         image_bytes = _generar_imagen_bytes(prompt_base, aspect_ratio)
         if image_bytes is None:
+            print(f"[VIDEO AGENT ERROR] El modelo {IMAGE_MODEL_ID} no devolvió datos para momento '{momento}'.")
             return {"status": "error", "momento": momento, "mensaje": "El modelo no devolvió datos de imagen."}
 
         evaluacion = _evaluar_imagen(image_bytes, descripcion)
@@ -507,6 +509,7 @@ def generar_imagen_visual(
         image_id = uuid.uuid4().hex[:8]
         image_url = _guardar_imagen(image_bytes, image_id)
         requiere_revision = evaluacion.get("overall_score", 0) < IMAGE_QUALITY_THRESHOLD
+        print(f"[VIDEO AGENT OK] Imagen generada y guardada: {image_url}")
 
         resultado = {
             "status": "success",
@@ -528,6 +531,7 @@ def generar_imagen_visual(
         return resultado
 
     except Exception as e:
+        print(f"[VIDEO AGENT EXCEPTION] Error al generar imagen '{momento}': {e}")
         return {
             "status": "error",
             "momento": momento,

@@ -24,6 +24,9 @@ services:
       SOPORTE_DATASTORE_ID: ${SOPORTE_DATASTORE_ID:-}
       GCS_BUCKET_RESUMEN: ${GCS_BUCKET_RESUMEN:-resumen-reuniones}
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-bucket_data1}
+      GCS_BUCKET_VIDEO: ${GCS_BUCKET_VIDEO:-ayudas-visuales_dev}
+      IMAGE_MODEL_ID: ${IMAGE_MODEL_ID:-gemini-3.1-flash-image}
+      EVAL_MODEL_ID: ${EVAL_MODEL_ID:-gemini-3.1-flash-image}
       BQ_DATASET_ID: ${BQ_DATASET_ID:-}
       BQ_LOCATION: ${BQ_LOCATION:-us-central1}
       ZOHO_CLIENT_ID: ${ZOHO_CLIENT_ID:-}
